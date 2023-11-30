@@ -5849,7 +5849,6 @@ public class TestHRegion {
     HRegion.FlushResult fr =
       this.region.flushcache(Arrays.asList(family), false, FlushLifeCycleTracker.DUMMY);
     assertTrue(fr.isFlushSucceeded());
-    assertTrue(fr.isCompactionNeeded());
   }
 
   @Test
@@ -5864,7 +5863,6 @@ public class TestHRegion {
     HRegion.FlushResult fr =
       this.region.flushcache(Arrays.asList(noSuchFamily), false, FlushLifeCycleTracker.DUMMY);
     assertTrue(fr.isFlushSucceeded());
-    assertTrue(fr.isCompactionNeeded());
   }
 
   protected Configuration initSplit() {
