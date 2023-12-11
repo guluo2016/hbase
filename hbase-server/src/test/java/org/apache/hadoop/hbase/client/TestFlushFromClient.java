@@ -23,13 +23,16 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import io.netty.util.concurrent.CompleteFuture;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseTestingUtil;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
+import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -43,6 +46,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -181,6 +185,18 @@ public class TestFlushFromClient {
       admin.flushRegion(r.getRegionInfo().getRegionName(), FAMILY_1).get();
       TimeUnit.SECONDS.sleep(1);
       assertEquals(sizeBeforeFlush / 2, r.getMemStoreDataSize());
+    }
+  }
+
+  @Test
+  public void testAsyncFlushRegionWithNonExistingFamily() {
+    AsyncAdmin admin = asyncConn.getAdmin();
+    ExpectedException exception = ExpectedException.none();
+    exception.expect(NoSuchColumnFamilyException.class);
+    for (HRegion r : getRegionInfo()) {
+      CompletableFuture<Void>
+        result = admin.flushRegion(r.getRegionInfo().getRegionName(), "non_family".getBytes());
+      result.isCompletedExceptionally();
     }
   }
 
