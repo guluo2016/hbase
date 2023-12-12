@@ -19,14 +19,16 @@ package org.apache.hadoop.hbase.client;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import io.netty.util.concurrent.CompleteFuture;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HBaseTestingUtil;
 import org.apache.hadoop.hbase.TableName;
@@ -36,6 +38,7 @@ import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FutureUtils;
 import org.apache.hadoop.hbase.util.JVMClusterUtil;
 import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
@@ -69,6 +72,9 @@ public class TestFlushFromClient {
   public static final byte[][] FAMILIES = { FAMILY_1, FAMILY_2 };
   @Rule
   public TestName name = new TestName();
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   public TableName tableName;
 
@@ -189,15 +195,28 @@ public class TestFlushFromClient {
   }
 
   @Test
-  public void testAsyncFlushRegionWithNonExistingFamily() {
+  public void testAsyncFlushTableWithNonExistingFamilies() throws IOException {
     AsyncAdmin admin = asyncConn.getAdmin();
-    ExpectedException exception = ExpectedException.none();
+    List<byte[]> families = new ArrayList<>();
+    families.add(FAMILY_1);
+    families.add(FAMILY_2);
+    families.add(Bytes.toBytes("non_family01"));
+    families.add(Bytes.toBytes("non_family02"));
+    CompletableFuture<Void> future = CompletableFuture.allOf(admin.flush(tableName, families));
     exception.expect(NoSuchColumnFamilyException.class);
-    for (HRegion r : getRegionInfo()) {
-      CompletableFuture<Void>
-        result = admin.flushRegion(r.getRegionInfo().getRegionName(), "non_family".getBytes());
-      result.isCompletedExceptionally();
-    }
+    FutureUtils.get(future);
+  }
+
+  @Test
+  public void testAsyncFlushRegionWithNonExistingFamily() throws IOException {
+    AsyncAdmin admin = asyncConn.getAdmin();
+    List<HRegion> regions = getRegionInfo();
+    assertNotNull(regions);
+    assertTrue(regions.size() > 0);
+    HRegion region = regions.get(0);
+    CompletableFuture<Void> future = CompletableFuture.allOf(admin.flushRegion(region.getRegionInfo().getRegionName(), Bytes.toBytes("non_family")));
+    exception.expect(NoSuchColumnFamilyException.class);
+    FutureUtils.get(future);
   }
 
   @Test

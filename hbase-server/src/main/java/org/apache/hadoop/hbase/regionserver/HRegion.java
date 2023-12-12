@@ -2512,6 +2512,16 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
       LOG.debug(msg);
       return new FlushResultImpl(FlushResult.Result.CANNOT_FLUSH, msg, false);
     }
+    // cannot flush non-existing column families
+    if (families != null) {
+      List<String> noSuchFamilies = families.stream().filter(cf -> getTableDescriptor().hasColumnFamily(cf)).map(cf -> Bytes.toString(cf)).collect(
+        Collectors.toList());
+      if (noSuchFamilies.size() > 0) {
+        String noSuchFamiliesMsg = String.format("There are non-existing families %s, we cannot flush the region %s, in table %s.", noSuchFamilies, getRegionInfo().getRegionNameAsString(), getTableDescriptor().getTableName().getNameAsString());
+        LOG.warn(noSuchFamiliesMsg);
+        return new FlushResultImpl(FlushResult.Result.CANNOT_FLUSH, noSuchFamiliesMsg, false);
+      }
+    }
     MonitoredTask status = TaskMonitor.get().createStatus("Flushing " + this);
     status.setStatus("Acquiring readlock on region");
     // block waiting for the lock for flushing cache
@@ -2597,9 +2607,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
   private Collection<HStore> getSpecificStores(List<byte[]> families) {
     Collection<HStore> specificStoresToFlush = new ArrayList<>();
     for (byte[] family : families) {
-      if (stores.keySet().contains(family)) {
-        specificStoresToFlush.add(stores.get(family));
-      }
+      specificStoresToFlush.add(stores.get(family));
     }
     return specificStoresToFlush;
   }

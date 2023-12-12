@@ -990,7 +990,7 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
       } else {
         List<String> nonFaimilies = columnFamilies.stream().filter(cf -> !tDesc.hasColumnFamily(cf)).map(cf -> Bytes.toString(cf)).collect(Collectors.toList());
         if (nonFaimilies.size() > 0) {
-          String noSuchFamiliesMsg = String.format("There are non-existing families %s, we cannot perform the flush for this table %s",
+          String noSuchFamiliesMsg = String.format("There are non-existing families %s, we cannot flush the table %s",
             nonFaimilies, tableName.getNameAsString());
           future.completeExceptionally(new NoSuchColumnFamilyException(noSuchFamiliesMsg));
         } else {
@@ -1092,7 +1092,7 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
           return;
         }
         if (columnFamily != null && !tDesc.hasColumnFamily(columnFamily)) {
-          String noSuchFamiliedMsg = String.format("There are non-existing family %s, we cannot perform the flush for the region %s, in table %s",
+          String noSuchFamiliedMsg = String.format("There are non-existing family %s, we cannot flush the region %s, in table %s",
             Bytes.toString(columnFamily), location.getRegion().getRegionNameAsString(), tableName.getNameAsString());
           future.completeExceptionally(new NoSuchColumnFamilyException(noSuchFamiliedMsg));
           return;

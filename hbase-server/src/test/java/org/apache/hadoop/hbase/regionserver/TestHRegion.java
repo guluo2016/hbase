@@ -5830,7 +5830,8 @@ public class TestHRegion {
 
     HRegion.FlushResult fr =
       this.region.flushcache(Arrays.asList(noSuchFamily), false, FlushLifeCycleTracker.DUMMY);
-    assertTrue(fr.isFlushSucceeded());
+    assertEquals(HRegion.FlushResult.Result.CANNOT_FLUSH, fr.getResult());
+    assertFalse("Cannot flush the Region because of non-existing column families.", fr.isFlushSucceeded());
   }
 
   protected Configuration initSplit() {
