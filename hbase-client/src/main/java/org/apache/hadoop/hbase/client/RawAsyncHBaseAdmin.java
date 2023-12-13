@@ -967,6 +967,8 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
 
   @Override
   public CompletableFuture<Void> flush(TableName tableName, byte[] columnFamily) {
+    Preconditions.checkNotNull(columnFamily,
+      "columnFamily is null, If you don't specify a columnFamily, use flush(TableName) instead.");
     return flush(tableName, Collections.singletonList(columnFamily));
   }
 
@@ -976,6 +978,8 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
     // If the server version is lower than the client version, it's possible that the
     // flushTable method is not present in the server side, if so, we need to fall back
     // to the old implementation.
+    Preconditions.checkNotNull(columnFamilyList,
+      "columnFamily is null, If you don't specify a columnFamily, use flush(TableName) instead.");
     List<byte[]> columnFamilies = columnFamilyList.stream()
       .filter(cf -> cf != null && cf.length > 0).distinct().collect(Collectors.toList());
     FlushTableRequest request = RequestConverter.buildFlushTableRequest(tableName, columnFamilies,
