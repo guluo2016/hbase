@@ -2512,12 +2512,16 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
       LOG.debug(msg);
       return new FlushResultImpl(FlushResult.Result.CANNOT_FLUSH, msg, false);
     }
-    // cannot flush non-existing column families
+    // cannot flush non-existing column families, and fail-fast
     if (families != null) {
-      List<String> noSuchFamilies = families.stream().filter(cf -> getTableDescriptor().hasColumnFamily(cf)).map(cf -> Bytes.toString(cf)).collect(
-        Collectors.toList());
+      List<String> noSuchFamilies =
+        families.stream().filter(cf -> !getTableDescriptor().hasColumnFamily(cf))
+          .map(cf -> Bytes.toString(cf)).collect(Collectors.toList());
       if (noSuchFamilies.size() > 0) {
-        String noSuchFamiliesMsg = String.format("There are non-existing families %s, we cannot flush the region %s, in table %s.", noSuchFamilies, getRegionInfo().getRegionNameAsString(), getTableDescriptor().getTableName().getNameAsString());
+        String noSuchFamiliesMsg = String.format(
+          "There are non-existing families %s, we cannot flush the region %s, in table %s.",
+          noSuchFamilies, getRegionInfo().getRegionNameAsString(),
+          getTableDescriptor().getTableName().getNameAsString());
         LOG.warn(noSuchFamiliesMsg);
         return new FlushResultImpl(FlushResult.Result.CANNOT_FLUSH, noSuchFamiliesMsg, false);
       }

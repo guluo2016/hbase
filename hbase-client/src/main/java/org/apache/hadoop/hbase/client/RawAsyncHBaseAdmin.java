@@ -988,21 +988,27 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
       if (error != null) {
         future.completeExceptionally(error);
       } else {
-        List<String> nonFaimilies = columnFamilies.stream().filter(cf -> !tDesc.hasColumnFamily(cf)).map(cf -> Bytes.toString(cf)).collect(Collectors.toList());
+        List<String> nonFaimilies = columnFamilies.stream().filter(cf -> !tDesc.hasColumnFamily(cf))
+          .map(cf -> Bytes.toString(cf)).collect(Collectors.toList());
         if (nonFaimilies.size() > 0) {
-          String noSuchFamiliesMsg = String.format("There are non-existing families %s, we cannot flush the table %s",
-            nonFaimilies, tableName.getNameAsString());
+          String noSuchFamiliesMsg =
+            String.format("There are non-existing families %s, we cannot flush the table %s",
+              nonFaimilies, tableName.getNameAsString());
           future.completeExceptionally(new NoSuchColumnFamilyException(noSuchFamiliesMsg));
         } else {
           addListener(procFuture, (ret, error2) -> {
             if (error2 != null) {
-              if (error2 instanceof TableNotFoundException || error2 instanceof TableNotEnabledException) {
+              if (
+                error2 instanceof TableNotFoundException
+                  || error2 instanceof TableNotEnabledException
+              ) {
                 future.completeExceptionally(error2);
               } else if (error2 instanceof DoNotRetryIOException) {
                 // usually this is caused by the method is not present on the server or
                 // the hbase hadoop version does not match the running hadoop version.
                 // if that happens, we need fall back to the old flush implementation.
-                LOG.info("Unrecoverable error in master side. Fallback to FlushTableProcedure V1", error2);
+                LOG.info("Unrecoverable error in master side. Fallback to FlushTableProcedure V1",
+                  error2);
                 legacyFlush(future, tableName, columnFamilies);
               } else {
                 future.completeExceptionally(error2);
@@ -1092,8 +1098,10 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
           return;
         }
         if (columnFamily != null && !tDesc.hasColumnFamily(columnFamily)) {
-          String noSuchFamiliedMsg = String.format("There are non-existing family %s, we cannot flush the region %s, in table %s",
-            Bytes.toString(columnFamily), location.getRegion().getRegionNameAsString(), tableName.getNameAsString());
+          String noSuchFamiliedMsg = String.format(
+            "There are non-existing family %s, we cannot flush the region %s, in table %s",
+            Bytes.toString(columnFamily), location.getRegion().getRegionNameAsString(),
+            tableName.getNameAsString());
           future.completeExceptionally(new NoSuchColumnFamilyException(noSuchFamiliedMsg));
           return;
         }

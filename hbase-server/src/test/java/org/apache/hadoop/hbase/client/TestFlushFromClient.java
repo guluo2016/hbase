@@ -214,7 +214,8 @@ public class TestFlushFromClient {
     assertNotNull(regions);
     assertTrue(regions.size() > 0);
     HRegion region = regions.get(0);
-    CompletableFuture<Void> future = CompletableFuture.allOf(admin.flushRegion(region.getRegionInfo().getRegionName(), Bytes.toBytes("non_family")));
+    CompletableFuture<Void> future = CompletableFuture.allOf(
+      admin.flushRegion(region.getRegionInfo().getRegionName(), Bytes.toBytes("non_family")));
     exception.expect(NoSuchColumnFamilyException.class);
     FutureUtils.get(future);
   }
