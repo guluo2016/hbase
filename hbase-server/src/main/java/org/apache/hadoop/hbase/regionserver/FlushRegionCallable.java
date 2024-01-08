@@ -57,6 +57,9 @@ public class FlushRegionCallable extends BaseRSProcedureCallable {
       } else {
         res = region.flushcache(columnFamilies, false, FlushLifeCycleTracker.DUMMY);
       }
+      if (res.isCompactionNeeded()) {
+        rs.getCompactSplitThread().requestSystemCompaction(region, Thread.currentThread().getName());
+      }
       if (res.getResult() == HRegion.FlushResult.Result.CANNOT_FLUSH) {
         throw new IOException("Unable to complete flush " + regionInfo);
       }
