@@ -118,7 +118,8 @@ public class TestScanTableWithReplicationFromClient {
     scan.setReplicaId(RegionReplicaUtil.DEFAULT_REPLICA_ID);
     scan.setConsistency(Consistency.TIMELINE);
     ResultScanner rs = metaTable.getScanner(scan);
-    rs.forEach(r -> assertTrue(r.getRow().toString().contains(tableName.getNameAsString())));
+    rs.forEach(r -> 
+      assertTrue(Bytes.toString(r.getRow()).contains(tableName.getNameAsString())));
   }
 
   @Test
@@ -128,7 +129,20 @@ public class TestScanTableWithReplicationFromClient {
     scan.setReplicaId(NON_EXISTING_REGION_REPLICA_ID);
     scan.setConsistency(Consistency.TIMELINE);
     exception.expect(DoNotRetryIOException.class);
-    metaTable.getScanner(scan);
+    ResultScanner rs = metaTable.getScanner(scan);
+    try {
+      rs.forEach(r -> Bytes.toString(r.getRow()));
+    } catch (Exception e) {
+      Throwable throwable = e.getCause();
+      assertTrue(throwable instanceof DoNotRetryIOException);
+      String message = "The specified region replica id " + NON_EXISTING_REGION_REPLICA_ID
+        + " does not exist, the REGION_REPLICATION of this table "
+        + TableName.META_TABLE_NAME.getNameAsString() + " is "
+        + TableDescriptorBuilder.DEFAULT_REGION_REPLICATION + ", "
+        + "this means that the maximum region replica id you can specify is "
+        + (TableDescriptorBuilder.DEFAULT_REGION_REPLICATION - 1) + ".";
+      assertEquals(message, throwable.getMessage());
+    }
   }
 
   @Test
@@ -138,7 +152,7 @@ public class TestScanTableWithReplicationFromClient {
     scan.setReplicaId(RegionReplicaUtil.DEFAULT_REPLICA_ID);
     scan.setConsistency(Consistency.TIMELINE);
     ResultScanner rs = table.getScanner(scan);
-    rs.forEach(r -> assertEquals(ROW, r.getRow().toString()));
+    rs.forEach(r -> assertEquals(ROW, Bytes.toString(r.getRow())));
   }
 
   @Test
@@ -148,6 +162,18 @@ public class TestScanTableWithReplicationFromClient {
     scan.setReplicaId(NON_EXISTING_REGION_REPLICA_ID);
     scan.setConsistency(Consistency.TIMELINE);
     exception.expect(DoNotRetryIOException.class);
-    table.getScanner(scan);
+    ResultScanner rs = table.getScanner(scan);
+    try {
+      rs.forEach(r -> Bytes.toString(r.getRow()));
+    } catch (Exception e) {
+      Throwable throwable = e.getCause();
+      assertTrue(throwable instanceof DoNotRetryIOException);
+       String message = "The specified region replica id " + NON_EXISTING_REGION_REPLICA_ID
+        + " does not exist, the REGION_REPLICATION of this table " + tableName.getNameAsString()
+        + " is " + REGION_REPLICATION_COUNT + ", "
+        + "this means that the maximum region replica id you can specify is "
+        + (REGION_REPLICATION_COUNT - 1) + ".";
+      assertEquals(message, throwable.getMessage());
+    }
   }
 }

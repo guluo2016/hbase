@@ -215,7 +215,7 @@ public abstract class AsyncRpcRetryingCaller<T> {
                 return;
               }
               int regionReplicationCount = tdesc.getRegionReplication();
-              if (replicaId > regionReplicationCount) {
+              if (replicaId >= regionReplicationCount) {
                 future
                   .completeExceptionally(new DoNotRetryIOException("The specified region replica id "
                     + replicaId + " does not exist, the REGION_REPLICATION of this table "
@@ -226,6 +226,8 @@ public abstract class AsyncRpcRetryingCaller<T> {
               }
               tryScheduleRetry(error);
             });
+          } else {
+            tryScheduleRetry(error);
           }
         });
       } else {
