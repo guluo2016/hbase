@@ -157,6 +157,7 @@
   final String ZEROMB = "0 MB";
   HMaster master = (HMaster)getServletContext().getAttribute(HMaster.MASTER);
   Configuration conf = master.getConfiguration();
+  String fqtn = request.getParameter("name");
   // handle the case for fqtn is null or master is not initialized with error message + redirect
   if (fqtn == null || !master.isInitialized()) {
 %>
@@ -173,7 +174,6 @@
   } %>
 
 <%
-  String fqtn = request.getParameter("name");
   final String escaped_fqtn = StringEscapeUtils.escapeHtml4(fqtn);
   Table table = master.getConnection().getTable(TableName.valueOf(fqtn));
   boolean showFragmentation = conf.getBoolean("hbase.master.ui.fragmentation.enabled", false);
