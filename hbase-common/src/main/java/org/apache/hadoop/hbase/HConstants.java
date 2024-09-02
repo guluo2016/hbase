@@ -1636,6 +1636,16 @@ public final class HConstants {
    */
   public final static boolean REJECT_DECOMMISSIONED_HOSTS_DEFAULT = false;
 
+  /**
+   * Setting to enable flush procedure, or not.
+   */
+  public final static String FLUSH_PROCEDURE_ENABLED = "hbase.flush.procedure.enabled";
+
+  /**
+   * Default value of {@link #FLUSH_PROCEDURE_ENABLED}
+   */
+  public final static boolean FLUSH_PROCEDURE_ENABLED_DEFAULT = true;
+
   private HConstants() {
     // Can't be instantiated with this ctor.
   }

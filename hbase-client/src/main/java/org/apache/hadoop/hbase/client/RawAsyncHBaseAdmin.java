@@ -972,35 +972,47 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
 
   @Override
   public CompletableFuture<Void> flush(TableName tableName, List<byte[]> columnFamilyList) {
-    // This is for keeping compatibility with old implementation.
-    // If the server version is lower than the client version, it's possible that the
-    // flushTable method is not present in the server side, if so, we need to fall back
-    // to the old implementation.
+    CompletableFuture<Void> future = new CompletableFuture<>();
     List<byte[]> columnFamilies = columnFamilyList.stream()
       .filter(cf -> cf != null && cf.length > 0).distinct().collect(Collectors.toList());
-    FlushTableRequest request = RequestConverter.buildFlushTableRequest(tableName, columnFamilies,
-      ng.getNonceGroup(), ng.newNonce());
-    CompletableFuture<Void> procFuture = this.<FlushTableRequest, FlushTableResponse> procedureCall(
-      tableName, request, (s, c, req, done) -> s.flushTable(c, req, done),
-      (resp) -> resp.getProcId(), new FlushTableProcedureBiConsumer(tableName));
-    CompletableFuture<Void> future = new CompletableFuture<>();
-    addListener(procFuture, (ret, error) -> {
-      if (error != null) {
-        if (error instanceof TableNotFoundException || error instanceof TableNotEnabledException) {
-          future.completeExceptionally(error);
-        } else if (error instanceof DoNotRetryIOException) {
-          // usually this is caused by the method is not present on the server or
-          // the hbase hadoop version does not match the running hadoop version.
-          // if that happens, we need fall back to the old flush implementation.
-          LOG.info("Unrecoverable error in master side. Fallback to FlushTableProcedure V1", error);
-          legacyFlush(future, tableName, columnFamilies);
+    Configuration conf = this.connection.getConfiguration();
+    if (
+      !conf.getBoolean(HConstants.FLUSH_PROCEDURE_ENABLED,
+        HConstants.FLUSH_PROCEDURE_ENABLED_DEFAULT)
+    ) {
+      legacyFlush(future, tableName, columnFamilies);
+    } else {
+      // This is for keeping compatibility with old implementation.
+      // If the server version is lower than the client version, it's possible that the
+      // flushTable method is not present in the server side, if so, we need to fall back
+      // to the old implementation.
+      FlushTableRequest request = RequestConverter.buildFlushTableRequest(tableName, columnFamilies,
+        ng.getNonceGroup(), ng.newNonce());
+      CompletableFuture<Void> procFuture =
+        this.<FlushTableRequest, FlushTableResponse> procedureCall(tableName, request,
+          (s, c, req, done) -> s.flushTable(c, req, done), (resp) -> resp.getProcId(),
+          new FlushTableProcedureBiConsumer(tableName));
+      addListener(procFuture, (ret, error) -> {
+        if (error != null) {
+          if (
+            error instanceof TableNotFoundException || error instanceof TableNotEnabledException
+          ) {
+            future.completeExceptionally(error);
+          } else if (error instanceof DoNotRetryIOException) {
+            // usually this is caused by the method is not present on the server or
+            // the hbase hadoop version does not match the running hadoop version.
+            // if that happens, we need fall back to the old flush implementation.
+            LOG.info("Unrecoverable error in master side. Fallback to FlushTableProcedure V1",
+              error);
+            legacyFlush(future, tableName, columnFamilies);
+          } else {
+            future.completeExceptionally(error);
+          }
         } else {
-          future.completeExceptionally(error);
+          future.complete(ret);
         }
-      } else {
-        future.complete(ret);
-      }
-    });
+      });
+    }
     return future;
   }
 

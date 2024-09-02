@@ -22,9 +22,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseIOException;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.RegionReplicaUtil;
-import org.apache.hadoop.hbase.procedure.flush.MasterFlushTableProcedureManager;
 import org.apache.hadoop.hbase.procedure2.ProcedureStateSerializer;
 import org.apache.hadoop.hbase.procedure2.ProcedureSuspendedException;
 import org.apache.hadoop.hbase.procedure2.ProcedureYieldException;
@@ -189,9 +189,8 @@ public class FlushTableProcedure extends AbstractStateMachineTableProcedure<Flus
   @Override
   protected void afterReplay(MasterProcedureEnv env) {
     if (
-      !env.getMasterConfiguration().getBoolean(
-        MasterFlushTableProcedureManager.FLUSH_PROCEDURE_ENABLED,
-        MasterFlushTableProcedureManager.FLUSH_PROCEDURE_ENABLED_DEFAULT)
+      !env.getMasterConfiguration().getBoolean(HConstants.FLUSH_PROCEDURE_ENABLED,
+        HConstants.FLUSH_PROCEDURE_ENABLED_DEFAULT)
     ) {
       setFailure("master-flush-table", new HBaseIOException("FlushTableProcedureV2 is DISABLED"));
     }

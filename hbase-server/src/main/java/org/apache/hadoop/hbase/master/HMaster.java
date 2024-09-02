@@ -4492,8 +4492,8 @@ public class HMaster extends HBaseServerBase<MasterRpcServices> implements Maste
     checkInitialized();
 
     if (
-      !getConfiguration().getBoolean(MasterFlushTableProcedureManager.FLUSH_PROCEDURE_ENABLED,
-        MasterFlushTableProcedureManager.FLUSH_PROCEDURE_ENABLED_DEFAULT)
+      !getConfiguration().getBoolean(HConstants.FLUSH_PROCEDURE_ENABLED,
+        HConstants.FLUSH_PROCEDURE_ENABLED_DEFAULT)
     ) {
       throw new DoNotRetryIOException("FlushTableProcedureV2 is DISABLED");
     }
