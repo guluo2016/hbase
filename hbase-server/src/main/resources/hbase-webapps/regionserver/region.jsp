@@ -37,10 +37,14 @@
 %>
 <%
   String regionName = request.getParameter("name");
-  HRegionServer rs = (HRegionServer) getServletContext().getAttribute(HRegionServer.REGIONSERVER);
-  FileSystem fs = rs.getFileSystem();
-
-  HRegion region = rs.getRegion(regionName);
+  HRegion region = null;
+  if (regionName != null) {
+    HRegionServer rs = (HRegionServer) getServletContext().getAttribute(HRegionServer.REGIONSERVER);
+    FileSystem fs = rs.getFileSystem();
+    region = rs.getRegion(regionName);
+  } else {
+    regionName = "";
+  }
   String displayName;
   boolean isReplicaRegion = false;
   if (region != null) {
