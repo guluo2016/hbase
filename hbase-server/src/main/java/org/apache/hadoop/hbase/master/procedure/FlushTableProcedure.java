@@ -125,12 +125,15 @@ public class FlushTableProcedure extends AbstractStateMachineTableProcedure<Flus
     try {
       final TableDescriptor tableDescriptor = master.getTableDescriptors().get(tableName);
       List<String> noSuchFamilies = columnFamilies.stream().filter(cf -> !tableDescriptor.hasColumnFamily(cf)).map(Bytes::toString).collect(Collectors.toList());
-      if (noSuchFamilies.size() > 0) {
+      if (!noSuchFamilies.isEmpty()) {
         throw new NoSuchColumnFamilyException(
           "column families " + noSuchFamilies + " does not exist in table " + tableName.getNameAsString());
       }
-    } catch (IOException e) {
-      throw new HBaseIOException(e);
+    } catch (IOException ioe) {
+      if (ioe instanceof HBaseIOException) {
+        throw (HBaseIOException) ioe;
+      }
+      throw new HBaseIOException(ioe);
     }
   }
 
