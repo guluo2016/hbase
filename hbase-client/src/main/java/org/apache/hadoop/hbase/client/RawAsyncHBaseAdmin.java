@@ -983,47 +983,27 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
       "columnFamily is null, If you don't specify a columnFamily, use flush(TableName) instead.");
     List<byte[]> columnFamilies = columnFamilyList.stream()
       .filter(cf -> cf != null && cf.length > 0).distinct().collect(Collectors.toList());
+    FlushTableRequest request = RequestConverter.buildFlushTableRequest(tableName, columnFamilies,
+      ng.getNonceGroup(), ng.newNonce());
+    CompletableFuture<Void> procFuture = this.<FlushTableRequest, FlushTableResponse> procedureCall(
+      tableName, request, (s, c, req, done) -> s.flushTable(c, req, done),
+      (resp) -> resp.getProcId(), new FlushTableProcedureBiConsumer(tableName));
     CompletableFuture<Void> future = new CompletableFuture<>();
-    addListener(getDescriptor(tableName), (tDesc, error) -> {
+    addListener(procFuture, (ret, error) -> {
       if (error != null) {
-        future.completeExceptionally(error);
-      } else {
-        List<String> nonFaimilies = columnFamilies.stream().filter(cf -> !tDesc.hasColumnFamily(cf))
-          .map(cf -> Bytes.toString(cf)).collect(Collectors.toList());
-        if (nonFaimilies.size() > 0) {
-          String noSuchFamiliesMsg =
-            String.format("There are non-existing families %s, we cannot flush the table %s",
-              nonFaimilies, tableName.getNameAsString());
-          future.completeExceptionally(new NoSuchColumnFamilyException(noSuchFamiliesMsg));
-        } else {
-          FlushTableRequest request = RequestConverter.buildFlushTableRequest(tableName,
-            columnFamilies, ng.getNonceGroup(), ng.newNonce());
-          CompletableFuture<Void> procFuture =
-            this.<FlushTableRequest, FlushTableResponse> procedureCall(tableName, request,
-              (s, c, req, done) -> s.flushTable(c, req, done), (resp) -> resp.getProcId(),
-              new FlushTableProcedureBiConsumer(tableName));
-          addListener(procFuture, (ret, error2) -> {
-            if (error2 != null) {
-              if (
-                error2 instanceof TableNotFoundException
-                  || error2 instanceof TableNotEnabledException
-              ) {
-                future.completeExceptionally(error2);
-              } else if (error2 instanceof DoNotRetryIOException) {
-                // usually this is caused by the method is not present on the server or
-                // the hbase hadoop version does not match the running hadoop version.
-                // if that happens, we need fall back to the old flush implementation.
-                LOG.info("Unrecoverable error in master side. Fallback to FlushTableProcedure V1",
-                  error2);
+        if (error instanceof TableNotFoundException || error instanceof TableNotEnabledException || error instanceof NoSuchColumnFamilyException) {
+          future.completeExceptionally(error);
+        } else if (error instanceof DoNotRetryIOException) {
+          // usually this is caused by the method is not present on the server or
+          // the hbase hadoop version does not match the running hadoop version.
+          // if that happens, we need fall back to the old flush implementation.
+          LOG.info("Unrecoverable error in master side. Fallback to FlushTableProcedure V1", error);
                 legacyFlush(future, tableName, columnFamilies);
               } else {
-                future.completeExceptionally(error2);
+          future.completeExceptionally(error);
               }
             } else {
               future.complete(ret);
-            }
-          });
-        }
       }
     });
     return future;
