@@ -115,19 +115,20 @@ public class FlushTableProcedure extends AbstractStateMachineTableProcedure<Flus
   }
 
   @Override
-  protected void preflightChecks(MasterProcedureEnv env, Boolean enabled)
-    throws HBaseIOException {
+  protected void preflightChecks(MasterProcedureEnv env, Boolean enabled) throws HBaseIOException {
     super.preflightChecks(env, enabled);
     if (columnFamilies == null) {
       return;
     }
     MasterServices master = env.getMasterServices();
     try {
-      final TableDescriptor tableDescriptor = master.getTableDescriptors().get(tableName);
-      List<String> noSuchFamilies = columnFamilies.stream().filter(cf -> !tableDescriptor.hasColumnFamily(cf)).map(Bytes::toString).collect(Collectors.toList());
+      TableDescriptor tableDescriptor = master.getTableDescriptors().get(tableName);
+      List<String> noSuchFamilies =
+        columnFamilies.stream().filter(cf -> !tableDescriptor.hasColumnFamily(cf))
+          .map(Bytes::toString).toList();
       if (!noSuchFamilies.isEmpty()) {
-        throw new NoSuchColumnFamilyException(
-          "column families " + noSuchFamilies + " does not exist in table " + tableName.getNameAsString());
+        throw new NoSuchColumnFamilyException("Column families " + noSuchFamilies
+          + " does not exist in table " + tableName.getNameAsString());
       }
     } catch (IOException ioe) {
       if (ioe instanceof HBaseIOException) {

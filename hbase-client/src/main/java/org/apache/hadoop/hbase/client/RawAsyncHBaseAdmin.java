@@ -991,19 +991,22 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
     CompletableFuture<Void> future = new CompletableFuture<>();
     addListener(procFuture, (ret, error) -> {
       if (error != null) {
-        if (error instanceof TableNotFoundException || error instanceof TableNotEnabledException || error instanceof NoSuchColumnFamilyException) {
+        if (
+          error instanceof TableNotFoundException || error instanceof TableNotEnabledException
+            || error instanceof NoSuchColumnFamilyException
+        ) {
           future.completeExceptionally(error);
         } else if (error instanceof DoNotRetryIOException) {
           // usually this is caused by the method is not present on the server or
           // the hbase hadoop version does not match the running hadoop version.
           // if that happens, we need fall back to the old flush implementation.
           LOG.info("Unrecoverable error in master side. Fallback to FlushTableProcedure V1", error);
-                legacyFlush(future, tableName, columnFamilies);
-              } else {
+          legacyFlush(future, tableName, columnFamilies);
+        } else {
           future.completeExceptionally(error);
-              }
-            } else {
-              future.complete(ret);
+        }
+      } else {
+        future.complete(ret);
       }
     });
     return future;
