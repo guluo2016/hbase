@@ -1080,29 +1080,14 @@ class RawAsyncHBaseAdmin implements AsyncAdmin {
           .completeExceptionally(new NoServerForRegionException(Bytes.toStringBinary(regionName)));
         return;
       }
-      TableName tableName = location.getRegion().getTable();
-      addListener(getDescriptor(tableName), (tDesc, error2) -> {
-        if (error2 != null) {
-          future.completeExceptionally(error2);
-          return;
-        }
-        if (columnFamily != null && !tDesc.hasColumnFamily(columnFamily)) {
-          String noSuchFamiliedMsg = String.format(
-            "There are non-existing family %s, we cannot flush the region %s, in table %s",
-            Bytes.toString(columnFamily), location.getRegion().getRegionNameAsString(),
-            tableName.getNameAsString());
-          future.completeExceptionally(new NoSuchColumnFamilyException(noSuchFamiliedMsg));
-          return;
-        }
-        addListener(flush(serverName, location.getRegion(), columnFamily, writeFlushWALMarker),
-          (ret, error3) -> {
-            if (error3 != null) {
-              future.completeExceptionally(error3);
-            } else {
-              future.complete(ret);
-            }
-          });
-      });
+      addListener(flush(serverName, location.getRegion(), columnFamily, writeFlushWALMarker),
+        (ret, err2) -> {
+          if (err2 != null) {
+            future.completeExceptionally(err2);
+          } else {
+            future.complete(ret);
+          }
+        });
     });
     return future;
   }

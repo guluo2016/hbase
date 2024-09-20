@@ -1615,7 +1615,7 @@ public class RSRpcServices extends HBaseRpcServicesBase<HRegionServer>
   @Override
   @QosPriority(priority = HConstants.ADMIN_QOS)
   public FlushRegionResponse flushRegion(final RpcController controller,
-    final FlushRegionRequest request) throws ServiceException {
+    final FlushRegionRequest request) throws ServiceException, NoSuchColumnFamilyException {
     try {
       checkOpen();
       requestCount.increment();
@@ -1632,8 +1632,14 @@ public class RSRpcServices extends HBaseRpcServicesBase<HRegionServer>
         // Go behind the curtain so we can manage writing of the flush WAL marker
         HRegion.FlushResultImpl flushResult = null;
         if (request.hasFamily()) {
-          List families = new ArrayList();
+          List<byte[]> families = new ArrayList();
           families.add(request.getFamily().toByteArray());
+          TableDescriptor tableDescriptor = region.getTableDescriptor();
+          List<String> noSuchFamilies = families.stream()
+            .filter(f -> !tableDescriptor.hasColumnFamily(f)).map(Bytes::toString).toList();
+          if (!noSuchFamilies.isEmpty()) {
+            throw new NoSuchColumnFamilyException("");
+          }
           flushResult =
             region.flushcache(families, writeFlushWalMarker, FlushLifeCycleTracker.DUMMY);
         } else {
@@ -1649,6 +1655,8 @@ public class RSRpcServices extends HBaseRpcServicesBase<HRegionServer>
       }
       builder.setLastFlushTime(region.getEarliestFlushTimeForAllStores());
       return builder.build();
+    } catch (NoSuchColumnFamilyException cfe) {
+      throw cfe;
     } catch (DroppedSnapshotException ex) {
       // Cache flush can fail in a few places. If it fails in a critical
       // section, we get a DroppedSnapshotException and a replay of wal
