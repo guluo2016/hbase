@@ -20,6 +20,7 @@ package org.apache.hadoop.hbase.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -48,7 +49,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,9 +73,6 @@ public class TestFlushFromClient {
   public static final byte[][] FAMILIES = { FAMILY_1, FAMILY_2 };
   @Rule
   public TestName name = new TestName();
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   public TableName tableName;
 
@@ -204,8 +201,7 @@ public class TestFlushFromClient {
     families.add(Bytes.toBytes("non_family01"));
     families.add(Bytes.toBytes("non_family02"));
     CompletableFuture<Void> future = CompletableFuture.allOf(admin.flush(tableName, families));
-    exception.expect(NoSuchColumnFamilyException.class);
-    FutureUtils.get(future);
+    assertThrows(NoSuchColumnFamilyException.class, () -> FutureUtils.get(future));
   }
 
   @Test
@@ -215,10 +211,9 @@ public class TestFlushFromClient {
     assertNotNull(regions);
     assertTrue(regions.size() > 0);
     HRegion region = regions.get(0);
-    CompletableFuture<Void> future = CompletableFuture.allOf(
-      admin.flushRegion(region.getRegionInfo().getRegionName(), Bytes.toBytes("non_family")));
-    exception.expect(NoSuchColumnFamilyException.class);
-    FutureUtils.get(future);
+    CompletableFuture<Void> future = CompletableFuture.allOf(admin
+      .flushRegion(region.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes("non_family")));
+    assertThrows(NoSuchColumnFamilyException.class, () -> FutureUtils.get(future));
   }
 
   @Test
