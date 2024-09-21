@@ -210,7 +210,7 @@ public class TestFlushFromClient {
 
   @Test
   public void testCompactAfterFlushing() throws IOException, InterruptedException {
-    TableName testCompactTable = TableName.valueOf("testCompactAfterFlushing");
+    TableName testCompactTable = TableName.valueOf("testCompactAfterFlushingTable");
     int compactionThreshold =
       TEST_UTIL.getConfiguration().getInt("hbase.hstore.compactionThreshold", 3);
     try (Admin admin = TEST_UTIL.getAdmin();
