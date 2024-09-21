@@ -24,7 +24,10 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+<<<<<<< HEAD
 import java.util.ArrayList;
+=======
+>>>>>>> 35e85d4ca8 (aaa)
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -35,7 +38,11 @@ import org.apache.hadoop.hbase.HBaseTestingUtil;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
+<<<<<<< HEAD
 import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
+=======
+import org.apache.hadoop.hbase.regionserver.Store;
+>>>>>>> 35e85d4ca8 (aaa)
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -235,6 +242,41 @@ public class TestFlushFromClient {
       admin.flushRegionServer(rs.getServerName()).get();
       assertFalse(getRegionInfo(rs).stream().anyMatch(r -> r.getMemStoreDataSize() != 0));
     }
+  }
+
+  @Test
+  public void testCompactAfterFlushing() throws IOException, InterruptedException {
+    TableName testCompactTable = TableName.valueOf("testCompactAfterFlushingTable");
+    int compactionThreshold =
+      TEST_UTIL.getConfiguration().getInt("hbase.hstore.compactionThreshold", 3);
+    try (Admin admin = TEST_UTIL.getAdmin();
+      Table t = TEST_UTIL.createTable(testCompactTable, "info")) {
+      assertTrue(TEST_UTIL.getAdmin().tableExists(testCompactTable));
+      List<HRegion> regions = TEST_UTIL.getHBaseCluster().getRegions(testCompactTable);
+      assertEquals(1, regions.size());
+      for (int i = 1; i <= compactionThreshold - 1; i++) {
+        Put put = new Put(Bytes.toBytes(i));
+        put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("name"), Bytes.toBytes("vvvvv"));
+        t.put(put);
+        admin.flush(testCompactTable);
+      }
+      int storefilesCount =
+        regions.get(0).getStores().stream().mapToInt(Store::getStorefilesCount).sum();
+      assertEquals(compactionThreshold - 1, storefilesCount);
+
+      Put put = new Put(Bytes.toBytes(compactionThreshold));
+      put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("name"), Bytes.toBytes("vvvvv"));
+      t.put(put);
+      admin.flush(testCompactTable);
+      Thread.sleep(1000);
+      while (admin.getCompactionState(tableName) != CompactionState.NONE) {
+        Thread.sleep(10);
+      }
+      storefilesCount =
+        regions.get(0).getStores().stream().mapToInt(Store::getStorefilesCount).sum();
+      assertTrue(storefilesCount < compactionThreshold);
+    }
+    TEST_UTIL.deleteTable(tableName);
   }
 
   private List<HRegion> getRegionInfo() {
