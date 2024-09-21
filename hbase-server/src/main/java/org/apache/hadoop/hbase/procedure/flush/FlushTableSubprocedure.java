@@ -48,8 +48,9 @@ public class FlushTableSubprocedure extends Subprocedure {
   private final List<HRegion> regions;
   private final FlushTableSubprocedurePool taskManager;
 
-  public FlushTableSubprocedure(HRegionServer rs, ProcedureMember member, ForeignExceptionDispatcher errorListener,
-    long wakeFrequency, long timeout, List<HRegion> regions, String table, List<String> families,
+  public FlushTableSubprocedure(HRegionServer rs, ProcedureMember member,
+    ForeignExceptionDispatcher errorListener, long wakeFrequency, long timeout,
+    List<HRegion> regions, String table, List<String> families,
     FlushTableSubprocedurePool taskManager) {
     super(member, table, errorListener, wakeFrequency, timeout);
     this.rs = rs;
@@ -87,7 +88,8 @@ public class FlushTableSubprocedure extends Subprocedure {
         }
         boolean shouldCompact = flushResult.isCompactionNeeded();
         if (shouldCompact) {
-          rs.getCompactSplitThread().requestSystemCompaction(region, "Compaction is triggered by flushing");
+          rs.getCompactSplitThread().requestSystemCompaction(region,
+            "Compaction is triggered by flushing");
         }
       } finally {
         LOG.debug("Closing region operation on " + region);
