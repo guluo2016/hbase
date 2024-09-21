@@ -240,6 +240,7 @@ public class TestFlushFromClient {
         regions.get(0).getStores().stream().mapToInt(Store::getStorefilesCount).sum();
       assertTrue(storefilesCount < compactionThreshold);
     }
+    TEST_UTIL.deleteTable(tableName);
   }
 
   private List<HRegion> getRegionInfo() {
