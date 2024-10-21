@@ -62,8 +62,7 @@ public class FlushRegionCallable extends BaseRSProcedureCallable {
       }
       boolean shouldCompact = res.isCompactionNeeded();
       if (shouldCompact) {
-        rs.getCompactSplitThread().requestSystemCompaction(region,
-          "Compaction is triggered by flush procedure");
+        rs.getCompactSplitThread().requestSystemCompaction(region, "Compaction is triggered by flush procedure");
       }
     } finally {
       LOG.debug("Closing region operation on {}", region);
