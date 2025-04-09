@@ -583,18 +583,28 @@ public class TestAdmin extends TestAdminBase {
     throws ClassNotFoundException, IOException {
     TableName table = TableName.valueOf(name.getMethodName());
     String invalidCompactionPolicyClassName = TestAdmin.class.getName();
-    assertFalse(CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
-    ColumnFamilyDescriptor cfDescriptorWithInvalidCompactionPolicy = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).setConfiguration(
-        DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, invalidCompactionPolicyClassName).build();
+    assertFalse(
+      CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
+    ColumnFamilyDescriptor cfDescriptorWithInvalidCompactionPolicy =
+      ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1"))
+        .setConfiguration(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
+          invalidCompactionPolicyClassName)
+        .build();
     TableDescriptor tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder
       .newBuilder(table).setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).build();
-    assertThrows(DoNotRetryRegionException.class, () -> TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null));
+    assertThrows(DoNotRetryRegionException.class,
+      () -> TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null));
     assertFalse(ADMIN.tableExists(table));
 
-    String validCompactionPolicyClassName = DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS.getName();
-    assertTrue(CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
-    ColumnFamilyDescriptor cfDescriptorWithValidCompactionPolicy = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).setConfiguration(
-      DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, validCompactionPolicyClassName).build();
+    String validCompactionPolicyClassName =
+      DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS.getName();
+    assertTrue(
+      CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
+    ColumnFamilyDescriptor cfDescriptorWithValidCompactionPolicy =
+      ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1"))
+        .setConfiguration(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
+          validCompactionPolicyClassName)
+        .build();
     TableDescriptor tableDescriptorWithValidCompactionPolicy = TableDescriptorBuilder
       .newBuilder(table).setColumnFamily(cfDescriptorWithValidCompactionPolicy).build();
     TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null);

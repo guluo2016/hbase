@@ -33,7 +33,6 @@ import org.apache.hadoop.hbase.regionserver.HStore;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionSplitPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
-import org.apache.hadoop.hbase.regionserver.compactions.ExploringCompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.FIFOCompactionPolicy;
 import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
@@ -223,7 +222,8 @@ public final class TableDescriptorChecker {
       }
       // Check if compaction policy is valid at table level
       if (!CompactionPolicy.class.isAssignableFrom(Class.forName(className))) {
-        throw new IOException("The class " + className + " is not assignable to " + CompactionPolicy.class.getName());
+        throw new IOException(
+          "The class " + className + " is not assignable to " + CompactionPolicy.class.getName());
       }
 
       int blockingFileCount = HStore.DEFAULT_BLOCKING_STOREFILE_COUNT;
@@ -235,11 +235,14 @@ public final class TableDescriptorChecker {
       }
 
       for (ColumnFamilyDescriptor hcd : td.getColumnFamilies()) {
-        Configuration cfConf = new CompoundConfiguration().add(conf).addStringMap(hcd.getConfiguration());
-        String compactionPolicy = cfConf.get(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, className);
+        Configuration cfConf =
+          new CompoundConfiguration().add(conf).addStringMap(hcd.getConfiguration());
+        String compactionPolicy =
+          cfConf.get(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, className);
         // Check if compaction policy is valid at column family level
         if (!CompactionPolicy.class.isAssignableFrom(Class.forName(compactionPolicy))) {
-          throw new IOException("The class " + compactionPolicy + " is not assignable to " + CompactionPolicy.class.getName());
+          throw new IOException("The class " + compactionPolicy + " is not assignable to "
+            + CompactionPolicy.class.getName());
         }
 
         if (!compactionPolicy.equals(FIFOCompactionPolicy.class.getName())) {
