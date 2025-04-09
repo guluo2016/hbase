@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseClassTestRule;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionLocation;
@@ -592,14 +593,14 @@ public class TestAdmin extends TestAdminBase {
         .build();
     TableDescriptor tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder
       .newBuilder(table).setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).build();
-    assertThrows(DoNotRetryRegionException.class,
+    assertThrows(DoNotRetryIOException.class,
       () -> TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null));
     assertFalse(ADMIN.tableExists(table));
 
     String validCompactionPolicyClassName =
       DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS.getName();
     assertTrue(
-      CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
+      CompactionPolicy.class.isAssignableFrom(Class.forName(validCompactionPolicyClassName)));
     ColumnFamilyDescriptor cfDescriptorWithValidCompactionPolicy =
       ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1"))
         .setConfiguration(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
@@ -607,7 +608,7 @@ public class TestAdmin extends TestAdminBase {
         .build();
     TableDescriptor tableDescriptorWithValidCompactionPolicy = TableDescriptorBuilder
       .newBuilder(table).setColumnFamily(cfDescriptorWithValidCompactionPolicy).build();
-    TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null);
+    TEST_UTIL.createTable(tableDescriptorWithValidCompactionPolicy, null);
     assertTrue(ADMIN.tableExists(table));
   }
 }
