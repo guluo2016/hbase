@@ -297,24 +297,6 @@ public class CreateTableProcedure extends AbstractStateMachineTableProcedure<Cre
       return false;
     }
 
-    ColumnFamilyDescriptor[] columnFamilyDescriptors = tableDescriptor.getColumnFamilies();
-    for (ColumnFamilyDescriptor cfDesc : columnFamilyDescriptors) {
-      Configuration conf = new CompoundConfiguration().addStringMap(cfDesc.getConfiguration())
-        .addBytesMap(cfDesc.getValues());
-      String className = conf.get(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY);
-      if (className != null) {
-        try {
-          if (!CompactionPolicy.class.isAssignableFrom(Class.forName(className))) {
-            throw new DoNotRetryIOException("The class " + className + " is not assignable to "
-              + CompactionPolicy.class.getName());
-          }
-        } catch (Exception e) {
-          setFailure("master-create-table", e);
-          return false;
-        }
-      }
-    }
-
     if (!tableName.isSystemTable()) {
       // do not check rs group for system tables as we may block the bootstrap.
       Supplier<String> forWhom = () -> "table " + tableName;
