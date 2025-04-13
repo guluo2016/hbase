@@ -51,6 +51,7 @@ import org.apache.hadoop.hbase.regionserver.storefiletracker.StoreFileTrackerFac
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.LargeTests;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.TableDescriptorChecker;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -592,7 +593,9 @@ public class TestAdmin extends TestAdminBase {
           invalidCompactionPolicyClassName)
         .build();
     TableDescriptor tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder
-      .newBuilder(table).setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).build();
+      .newBuilder(table)
+      .setValue(TableDescriptorChecker.TABLE_SANITY_CHECKS, Boolean.toString(TableDescriptorChecker.DEFAULT_TABLE_SANITY_CHECKS))
+      .setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).build();
     assertThrows(DoNotRetryIOException.class,
       () -> TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null));
     assertFalse(ADMIN.tableExists(table));
@@ -607,7 +610,9 @@ public class TestAdmin extends TestAdminBase {
           validCompactionPolicyClassName)
         .build();
     TableDescriptor tableDescriptorWithValidCompactionPolicy = TableDescriptorBuilder
-      .newBuilder(table).setColumnFamily(cfDescriptorWithValidCompactionPolicy).build();
+      .newBuilder(table)
+      .setValue(TableDescriptorChecker.TABLE_SANITY_CHECKS, Boolean.toString(TableDescriptorChecker.DEFAULT_TABLE_SANITY_CHECKS))
+      .setColumnFamily(cfDescriptorWithValidCompactionPolicy).build();
     TEST_UTIL.createTable(tableDescriptorWithValidCompactionPolicy, null);
     assertTrue(ADMIN.tableExists(table));
   }
