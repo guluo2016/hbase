@@ -331,7 +331,7 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
       CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
     ColumnFamilyDescriptor cfDescriptorWithInvalidCompactionPolicy =
       ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1"))
-        .setConfiguration(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
+        .setValue(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
           invalidCompactionPolicyClassName)
         .build();
     TableDescriptor tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder
@@ -363,8 +363,9 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
     String exploringCompactionPolicy = ExploringCompactionPolicy.class.getName();
     assertTrue(CompactionPolicy.class.isAssignableFrom(Class.forName(exploringCompactionPolicy)));
     ColumnFamilyDescriptor cfDescriptor =
-      ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).setConfiguration(
-        DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, exploringCompactionPolicy).build();
+      ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1"))
+        .setValue(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, exploringCompactionPolicy)
+        .build();
     TableDescriptor tableDescriptor =
       TableDescriptorBuilder.newBuilder(tableName).setColumnFamily(cfDescriptor).build();
     RegionInfo[] regions03 = ModifyRegionUtils.createRegionInfos(tableDescriptor, null);
