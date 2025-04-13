@@ -338,11 +338,20 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
       .newBuilder(tableName).setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).build();
     RegionInfo[] regions01 =
       ModifyRegionUtils.createRegionInfos(tableDescriptorWithInvalidCompactionPolicy, null);
-
     // we would get exception because of invalid compaction policy
     final long procId01 = ProcedureTestingUtility.submitAndWait(procExec, new CreateTableProcedure(
       procExec.getEnvironment(), tableDescriptorWithInvalidCompactionPolicy, regions01));
     assertTrue(procExec.getResult(procId01).hasException());
+    assertFalse(UTIL.getAdmin().tableExists(tableName));
+
+    cfDescriptorWithInvalidCompactionPolicy = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).build();
+    // set invalid compaction policy at table level
+    tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder.newBuilder(tableName).setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).setValue(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, invalidCompactionPolicyClassName).build();
+    RegionInfo[] regions02 = ModifyRegionUtils.createRegionInfos(tableDescriptorWithInvalidCompactionPolicy, null);
+    // we would still get exception because of invalid compaction policy at table level
+    final long procId02 = ProcedureTestingUtility.submitAndWait(procExec,
+      new CreateTableProcedure(procExec.getEnvironment(), tableDescriptorWithInvalidCompactionPolicy, regions02));
+    assertTrue(procExec.getResult(procId02).hasException());
     assertFalse(UTIL.getAdmin().tableExists(tableName));
 
     String exploringCompactionPolicy = ExploringCompactionPolicy.class.getName();
@@ -352,11 +361,12 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
         DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, exploringCompactionPolicy).build();
     TableDescriptor tableDescriptor =
       TableDescriptorBuilder.newBuilder(tableName).setColumnFamily(cfDescriptor).build();
-    RegionInfo[] regions02 = ModifyRegionUtils.createRegionInfos(tableDescriptor, null);
-
-    final long procId02 = ProcedureTestingUtility.submitAndWait(procExec,
-      new CreateTableProcedure(procExec.getEnvironment(), tableDescriptor, regions02));
-    assertFalse(procExec.getResult(procId02).hasException());
+    RegionInfo[] regions03 = ModifyRegionUtils.createRegionInfos(tableDescriptor, null);
+    final long procId03 = ProcedureTestingUtility.submitAndWait(procExec,
+      new CreateTableProcedure(procExec.getEnvironment(), tableDescriptor, regions03));
+    assertFalse(procExec.getResult(procId03).hasException());
     assertTrue(UTIL.getAdmin().tableExists(tableName));
+
+
   }
 }

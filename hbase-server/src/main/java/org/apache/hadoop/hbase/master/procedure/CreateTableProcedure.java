@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CompoundConfiguration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -40,6 +41,8 @@ import org.apache.hadoop.hbase.master.MasterFileSystem;
 import org.apache.hadoop.hbase.procedure2.ProcedureStateSerializer;
 import org.apache.hadoop.hbase.procedure2.ProcedureSuspendedException;
 import org.apache.hadoop.hbase.procedure2.ProcedureUtil;
+import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.storefiletracker.StoreFileTrackerFactory;
 import org.apache.hadoop.hbase.regionserver.storefiletracker.StoreFileTrackerValidationUtils;
 import org.apache.hadoop.hbase.rsgroup.RSGroupInfo;
@@ -295,13 +298,16 @@ public class CreateTableProcedure extends AbstractStateMachineTableProcedure<Cre
       return false;
     }
 
-    for (ColumnFamilyDescriptor cfDesc : tableDescriptor.getColumnFamilies()) {
-      try {
-        ConfigKey.validate(new CompoundConfiguration().addBytesMap(cfDesc.getValues()));
-      } catch (Exception e) {
-        setFailure("master-create-table", e);
-        return false;
+    // throw exception if invalid configuration is specified
+    try {
+      ConfigKey.validate(new CompoundConfiguration().addBytesMap(tableDescriptor.getValues()));
+      for (ColumnFamilyDescriptor cfDesc : tableDescriptor.getColumnFamilies()) {
+        ConfigKey.validate(new CompoundConfiguration().addStringMap(cfDesc.getConfiguration())
+          .addBytesMap(cfDesc.getValues()));
       }
+    } catch (Exception e) {
+      setFailure("master-create-table", e);
+      return false;
     }
 
     if (!tableName.isSystemTable()) {
