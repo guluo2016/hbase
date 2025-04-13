@@ -371,7 +371,7 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
     RegionInfo[] regions03 = ModifyRegionUtils.createRegionInfos(tableDescriptor, null);
     final long procId03 = ProcedureTestingUtility.submitAndWait(procExec,
       new CreateTableProcedure(procExec.getEnvironment(), tableDescriptor, regions03));
-    assertFalse(procExec.getResult(procId03).hasException());
+    assertTrue(procExec.getResult(procId03).isSuccess());
     assertTrue(UTIL.getAdmin().tableExists(tableName));
   }
 }
