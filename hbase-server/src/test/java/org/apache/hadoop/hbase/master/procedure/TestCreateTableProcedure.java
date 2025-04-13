@@ -373,6 +373,5 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
       new CreateTableProcedure(procExec.getEnvironment(), tableDescriptor, regions03));
     assertFalse(procExec.getResult(procId03).hasException());
     assertTrue(UTIL.getAdmin().tableExists(tableName));
-
   }
 }
