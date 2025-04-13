@@ -344,13 +344,19 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
     assertTrue(procExec.getResult(procId01).hasException());
     assertFalse(UTIL.getAdmin().tableExists(tableName));
 
-    cfDescriptorWithInvalidCompactionPolicy = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).build();
+    cfDescriptorWithInvalidCompactionPolicy =
+      ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).build();
     // set invalid compaction policy at table level
-    tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder.newBuilder(tableName).setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).setValue(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, invalidCompactionPolicyClassName).build();
-    RegionInfo[] regions02 = ModifyRegionUtils.createRegionInfos(tableDescriptorWithInvalidCompactionPolicy, null);
+    tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder.newBuilder(tableName)
+      .setColumnFamily(cfDescriptorWithInvalidCompactionPolicy)
+      .setValue(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
+        invalidCompactionPolicyClassName)
+      .build();
+    RegionInfo[] regions02 =
+      ModifyRegionUtils.createRegionInfos(tableDescriptorWithInvalidCompactionPolicy, null);
     // we would still get exception because of invalid compaction policy at table level
-    final long procId02 = ProcedureTestingUtility.submitAndWait(procExec,
-      new CreateTableProcedure(procExec.getEnvironment(), tableDescriptorWithInvalidCompactionPolicy, regions02));
+    final long procId02 = ProcedureTestingUtility.submitAndWait(procExec, new CreateTableProcedure(
+      procExec.getEnvironment(), tableDescriptorWithInvalidCompactionPolicy, regions02));
     assertTrue(procExec.getResult(procId02).hasException());
     assertFalse(UTIL.getAdmin().tableExists(tableName));
 
@@ -366,7 +372,6 @@ public class TestCreateTableProcedure extends TestTableDDLProcedureBase {
       new CreateTableProcedure(procExec.getEnvironment(), tableDescriptor, regions03));
     assertFalse(procExec.getResult(procId03).hasException());
     assertTrue(UTIL.getAdmin().tableExists(tableName));
-
 
   }
 }
