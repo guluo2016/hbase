@@ -47,6 +47,7 @@ import org.apache.hadoop.hbase.master.assignment.AssignmentManager;
 import org.apache.hadoop.hbase.master.assignment.RegionStateNode;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
+import org.apache.hadoop.hbase.regionserver.compactions.ExploringCompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.storefiletracker.StoreFileTrackerFactory;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.LargeTests;
@@ -585,34 +586,16 @@ public class TestAdmin extends TestAdminBase {
     throws ClassNotFoundException, IOException {
     TableName table = TableName.valueOf(name.getMethodName());
     String invalidCompactionPolicyClassName = TestAdmin.class.getName();
-    assertFalse(
-      CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
-    ColumnFamilyDescriptor cfDescriptorWithInvalidCompactionPolicy =
-      ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1"))
-        .setConfiguration(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
-          invalidCompactionPolicyClassName)
-        .build();
-    TableDescriptor tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder
-      .newBuilder(table)
-      .setValue(TableDescriptorChecker.TABLE_SANITY_CHECKS, Boolean.toString(TableDescriptorChecker.DEFAULT_TABLE_SANITY_CHECKS))
-      .setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).build();
-    assertThrows(DoNotRetryIOException.class,
-      () -> TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null));
+    assertFalse(CompactionPolicy.class.isAssignableFrom(Class.forName(invalidCompactionPolicyClassName)));
+    ColumnFamilyDescriptor cfDescriptorWithInvalidCompactionPolicy = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).setValue(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, invalidCompactionPolicyClassName).build();
+    TableDescriptor tableDescriptorWithInvalidCompactionPolicy = TableDescriptorBuilder.newBuilder(table).setValue(TableDescriptorChecker.TABLE_SANITY_CHECKS, Boolean.toString(TableDescriptorChecker.DEFAULT_TABLE_SANITY_CHECKS)).setColumnFamily(cfDescriptorWithInvalidCompactionPolicy).build();
+    assertThrows(DoNotRetryIOException.class, () -> TEST_UTIL.createTable(tableDescriptorWithInvalidCompactionPolicy, null));
     assertFalse(ADMIN.tableExists(table));
 
-    String validCompactionPolicyClassName =
-      DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS.getName();
-    assertTrue(
-      CompactionPolicy.class.isAssignableFrom(Class.forName(validCompactionPolicyClassName)));
-    ColumnFamilyDescriptor cfDescriptorWithValidCompactionPolicy =
-      ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1"))
-        .setConfiguration(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY,
-          validCompactionPolicyClassName)
-        .build();
-    TableDescriptor tableDescriptorWithValidCompactionPolicy = TableDescriptorBuilder
-      .newBuilder(table)
-      .setValue(TableDescriptorChecker.TABLE_SANITY_CHECKS, Boolean.toString(TableDescriptorChecker.DEFAULT_TABLE_SANITY_CHECKS))
-      .setColumnFamily(cfDescriptorWithValidCompactionPolicy).build();
+    String validCompactionPolicyClassName = ExploringCompactionPolicy.class.getName();
+    assertTrue(CompactionPolicy.class.isAssignableFrom(Class.forName(validCompactionPolicyClassName)));
+    ColumnFamilyDescriptor cfDescriptorWithValidCompactionPolicy = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("f1")).setValue(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, validCompactionPolicyClassName).build();
+    TableDescriptor tableDescriptorWithValidCompactionPolicy = TableDescriptorBuilder.newBuilder(table).setValue(TableDescriptorChecker.TABLE_SANITY_CHECKS, Boolean.toString(TableDescriptorChecker.DEFAULT_TABLE_SANITY_CHECKS)).setColumnFamily(cfDescriptorWithValidCompactionPolicy).build();
     TEST_UTIL.createTable(tableDescriptorWithValidCompactionPolicy, null);
     assertTrue(ADMIN.tableExists(table));
   }
