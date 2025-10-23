@@ -18,7 +18,9 @@
 package org.apache.hadoop.hbase.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -28,6 +30,7 @@ import org.apache.hadoop.hbase.HBaseTestingUtil;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HStore;
+import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -73,10 +76,10 @@ public class TestMobCompactFromClient {
   public void testCompactMobTableFromClientSize() throws Exception {
     TableName tableName = TableName.valueOf(name.getMethodName());
     TableDescriptorBuilder tableBuilder = TableDescriptorBuilder.newBuilder(tableName);
-    tableBuilder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(MOB_FAMILY.getBytes())
+    tableBuilder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(MOB_FAMILY))
       .setMobEnabled(true).setMobThreshold(100L).build());
     tableBuilder
-      .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(FAMILY.getBytes()).build());
+      .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(FAMILY)).build());
     admin.createTable(tableBuilder.build());
 
     assertTrue(admin.tableExists(tableName));
@@ -96,15 +99,15 @@ public class TestMobCompactFromClient {
       RegionInfo regionInfo = regionInfos.get(0);
       HRegion region =
         TEST_UTIL.getRSForFirstRegionInTable(tableName).getRegion(regionInfo.getEncodedName());
-      HStore store1 = region.getStore(MOB_FAMILY.getBytes());
+      HStore store1 = region.getStore(Bytes.toBytes(MOB_FAMILY));
       assertNotNull(store1);
-      HStore store2 = region.getStore(FAMILY.getBytes());
+      HStore store2 = region.getStore(Bytes.toBytes(FAMILY));
       assertNotNull(store2);
 
       assertEquals(5, store1.getStorefilesCount());
       assertEquals(5, store2.getStorefilesCount());
 
-      admin.compact(tableName, MOB_FAMILY.getBytes(), CompactType.MOB);
+      admin.compact(tableName, Bytes.toBytes(MOB_FAMILY), CompactType.MOB);
       Thread.sleep(1000);
       int retry = 5;
       while (
@@ -153,10 +156,10 @@ public class TestMobCompactFromClient {
   public void testMajorCompactMobTableFromClientSize() throws Exception {
     TableName tableName = TableName.valueOf(name.getMethodName());
     TableDescriptorBuilder tableBuilder = TableDescriptorBuilder.newBuilder(tableName);
-    tableBuilder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(MOB_FAMILY.getBytes())
+    tableBuilder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(MOB_FAMILY))
       .setMobEnabled(true).setMobThreshold(100L).build());
     tableBuilder
-      .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(FAMILY.getBytes()).build());
+      .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(FAMILY)).build());
     admin.createTable(tableBuilder.build());
 
     assertTrue(admin.tableExists(tableName));
@@ -176,9 +179,9 @@ public class TestMobCompactFromClient {
       RegionInfo regionInfo = regionInfos.get(0);
       HRegion region =
         TEST_UTIL.getRSForFirstRegionInTable(tableName).getRegion(regionInfo.getEncodedName());
-      HStore store1 = region.getStore(MOB_FAMILY.getBytes());
+      HStore store1 = region.getStore(Bytes.toBytes(MOB_FAMILY));
       assertNotNull(store1);
-      HStore store2 = region.getStore(FAMILY.getBytes());
+      HStore store2 = region.getStore(Bytes.toBytes(FAMILY));
       assertNotNull(store2);
       assertEquals(5, store1.getStorefilesCount());
       assertEquals(5, store2.getStorefilesCount());
@@ -224,6 +227,32 @@ public class TestMobCompactFromClient {
     } finally {
       TEST_UTIL.deleteTable(tableName);
     }
+  }
+
+  @Test
+  public void testCompactMobTableWithNonFamilyFromClientSize() throws IOException {
+      TableName tableName = TableName.valueOf(name.getMethodName());
+      TableDescriptorBuilder tableBuilder = TableDescriptorBuilder.newBuilder(tableName);
+      tableBuilder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(MOB_FAMILY))
+              .setMobEnabled(true).setMobThreshold(100L).build());
+      TableDescriptor tableDescriptor = tableBuilder.build();
+      admin.createTable(tableDescriptor);
+
+      assertTrue(admin.tableExists(tableName));
+
+      try (Table table = admin.getConnection().getTable(tableName)) {
+          // Put some data && flush the table
+          for (int i = 0; i < 5; i++) {
+              Put put = new Put(Bytes.toBytes("row" + i));
+              put.addColumn(Bytes.toBytes(MOB_FAMILY), Bytes.toBytes(QUALIFIER), makeDummyData(500));
+              table.put(put);
+              admin.flush(tableName);
+          }
+          assertFalse(tableDescriptor.hasColumnFamily(Bytes.toBytes(FAMILY)));
+          assertThrows(NoSuchColumnFamilyException.class, () -> admin.compact(tableName, Bytes.toBytes(FAMILY), CompactType.MOB));
+      } finally {
+          TEST_UTIL.deleteTable(tableName);
+      }
   }
 
   private byte[] makeDummyData(int size) {
