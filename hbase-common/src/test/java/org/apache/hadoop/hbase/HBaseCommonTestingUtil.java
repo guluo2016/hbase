@@ -255,6 +255,14 @@ public class HBaseCommonTestingUtil {
     return Waiter.waitFor(this.conf, timeout, interval, failIfTimeout, predicate);
   }
 
+  /**
+   * Wrapper method for {@link Waiter#waitFor(Configuration, long, long, long, boolean, Predicate)}.
+   */
+  public <E extends Exception> long waitFor(long timeout, long initialDelay, long interval,
+    boolean failIfTimeout, Predicate<E> predicate) throws E {
+    return Waiter.waitFor(this.conf, timeout, initialDelay, interval, failIfTimeout, predicate);
+  }
+
   private static final PortAllocator portAllocator = new PortAllocator();
 
   public static int randomFreePort() {
