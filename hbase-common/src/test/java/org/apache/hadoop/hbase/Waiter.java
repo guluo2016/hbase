@@ -169,17 +169,67 @@ public final class Waiter {
    */
   public static <E extends Exception> long waitFor(Configuration conf, long timeout, long interval,
     boolean failIfTimeout, Predicate<E> predicate) {
+    return waitFor(conf, timeout, 0, interval, failIfTimeout, predicate);
+  }
+
+  /**
+   * Waits for an initial delay before starting to poll the given {@link Predicate} to become
+   * <code>true</code>. After the initial delay, it polls at the specified interval until the
+   * predicate becomes <code>true</code> or the timeout is reached.
+   * <p/>
+   * This is useful in scenarios where:
+   * <ul>
+   * <li>The condition is known to require a certain initialization time before it can possibly
+   * become true (e.g., waiting for a region to warm up, cache to initialize)</li>
+   * <li>Immediate polling would waste resources and create unnecessary log noise</li>
+   * <li>You want to avoid the "thundering herd" problem by staggering initial checks</li>
+   * </ul>
+   * <p/>
+   * Example use case: When testing region assignment after a restart, you might know it takes at
+   * least 5 seconds for the region server to initialize. Instead of polling immediately every
+   * 100ms, you can wait 4 seconds initially, then start polling.
+   * <p/>
+   * @param conf          the configuration
+   * @param timeout       the max timeout in milliseconds to wait for the predicate (excluding the
+   *                      initial delay). The total max wait time is initialDelay + timeout.
+   * @param initialDelay  the initial delay in milliseconds before starting to poll the predicate.
+   *                      Must be non-negative. If 0, behaves identically to
+   *                      {@link #waitFor(Configuration, long, long, boolean, Predicate)}.
+   * @param interval      the interval in milliseconds to evaluate predicate after the initial
+   *                      delay.
+   * @param failIfTimeout indicates if should fail current test case when times out.
+   * @param predicate     the predicate to evaluate.
+   * @return the effective wait, in milli-seconds until the predicate becomes <code>true</code> or
+   *         wait is interrupted otherwise <code>-1</code> when times out. The returned time
+   *         includes the initial delay.
+   */
+  public static <E extends Exception> long waitFor(Configuration conf, long timeout,
+    long initialDelay, long interval, boolean failIfTimeout, Predicate<E> predicate) {
     long started = EnvironmentEdgeManager.currentTime();
     long adjustedTimeout = (long) (getWaitForRatio(conf) * timeout);
-    long mustEnd = started + adjustedTimeout;
+    long adjustedInitialDelay = (long) (getWaitForRatio(conf) * initialDelay);
+    long mustEnd = started + adjustedInitialDelay + adjustedTimeout;
     long remainderWait;
     long sleepInterval;
     boolean eval;
     boolean interrupted = false;
 
     try {
-      LOG.info(MessageFormat.format("Waiting up to [{0}] milli-secs(wait.for.ratio=[{1}])",
-        adjustedTimeout, getWaitForRatio(conf)));
+      // Handle initial delay
+      if (adjustedInitialDelay > 0) {
+        LOG.info("Waiting for initial delay of [{}] milli-secs before starting to poll (wait.for.ratio=[{}])", adjustedInitialDelay, getWaitForRatio(conf));
+        try {
+          Thread.sleep(adjustedInitialDelay);
+        } catch (InterruptedException e) {
+          LOG.warn("Initial delay interrupted after {} msec", EnvironmentEdgeManager.currentTime() - started);
+          interrupted = true;
+          // Check predicate once even if interrupted during initial delay
+          eval = predicate.evaluate();
+          return eval ? (EnvironmentEdgeManager.currentTime() - started) : -1;
+        }
+      }
+
+      LOG.info("Waiting up to {} milli-secs (wait.for.ratio={}) after initial delay of {} milli-secs", adjustedTimeout, getWaitForRatio(conf)m, adjustedInitialDelay);
       while (
         !(eval = predicate.evaluate())
           && (remainderWait = mustEnd - EnvironmentEdgeManager.currentTime()) > 0
@@ -195,16 +245,22 @@ public final class Waiter {
         }
       }
       if (!eval) {
+        long totalElapsed = EnvironmentEdgeManager.currentTime() - started;
         if (interrupted) {
-          LOG.warn(MessageFormat.format("Waiting interrupted after [{0}] msec",
-            EnvironmentEdgeManager.currentTime() - started));
+          LOG.warn("");
+          LOG.warn(MessageFormat.format("Waiting interrupted after [{0}] msec", totalElapsed));
         } else if (failIfTimeout) {
           String msg = getExplanation(predicate);
-          fail(MessageFormat.format("Waiting timed out after [{0}] msec", adjustedTimeout) + msg);
+          fail(MessageFormat.format(
+            "Waiting timed out after [{0}] msec (initial delay: [{1}] msec, polling timeout: "
+              + "[{2}] msec)",
+            totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
         } else {
           String msg = getExplanation(predicate);
-          LOG.warn(
-            MessageFormat.format("Waiting timed out after [{0}] msec", adjustedTimeout) + msg);
+          LOG.warn(MessageFormat.format(
+            "Waiting timed out after [{0}] msec (initial delay: [{1}] msec, polling timeout: "
+              + "[{2}] msec)",
+            totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
         }
       }
       return (eval || interrupted) ? (EnvironmentEdgeManager.currentTime() - started) : -1;
