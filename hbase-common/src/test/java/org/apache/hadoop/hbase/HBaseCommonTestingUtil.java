@@ -256,8 +256,7 @@ public class HBaseCommonTestingUtil {
   }
 
   /**
-   * Wrapper method for
-   * {@link Waiter#waitFor(Configuration, long, long, long, boolean, Predicate)}.
+   * Wrapper method for {@link Waiter#waitFor(Configuration, long, long, long, boolean, Predicate)}.
    */
   public <E extends Exception> long waitFor(long timeout, long initialDelay, long interval,
     boolean failIfTimeout, Predicate<E> predicate) throws E {

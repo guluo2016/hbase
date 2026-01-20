@@ -172,37 +172,6 @@ public final class Waiter {
     return waitFor(conf, timeout, 0, interval, failIfTimeout, predicate);
   }
 
-  /**
-   * Waits for an initial delay before starting to poll the given {@link Predicate} to become
-   * <code>true</code>. After the initial delay, it polls at the specified interval until the
-   * predicate becomes <code>true</code> or the timeout is reached.
-   * <p/>
-   * This is useful in scenarios where:
-   * <ul>
-   * <li>The condition is known to require a certain initialization time before it can possibly
-   * become true (e.g., waiting for a region to warm up, cache to initialize)</li>
-   * <li>Immediate polling would waste resources and create unnecessary log noise</li>
-   * <li>You want to avoid the "thundering herd" problem by staggering initial checks</li>
-   * </ul>
-   * <p/>
-   * Example use case: When testing region assignment after a restart, you might know it takes at
-   * least 5 seconds for the region server to initialize. Instead of polling immediately every
-   * 100ms, you can wait 4 seconds initially, then start polling.
-   * <p/>
-   * @param conf          the configuration
-   * @param timeout       the max timeout in milliseconds to wait for the predicate (excluding the
-   *                      initial delay). The total max wait time is initialDelay + timeout.
-   * @param initialDelay  the initial delay in milliseconds before starting to poll the predicate.
-   *                      Must be non-negative. If 0, behaves identically to
-   *                      {@link #waitFor(Configuration, long, long, boolean, Predicate)}.
-   * @param interval      the interval in milliseconds to evaluate predicate after the initial
-   *                      delay.
-   * @param failIfTimeout indicates if should fail current test case when times out.
-   * @param predicate     the predicate to evaluate.
-   * @return the effective wait, in milli-seconds until the predicate becomes <code>true</code> or
-   *         wait is interrupted otherwise <code>-1</code> when times out. The returned time
-   *         includes the initial delay.
-   */
   public static <E extends Exception> long waitFor(Configuration conf, long timeout,
     long initialDelay, long interval, boolean failIfTimeout, Predicate<E> predicate) {
     long started = EnvironmentEdgeManager.currentTime();
@@ -249,13 +218,9 @@ public final class Waiter {
           LOG.warn("Waiting interrupted after {} ms", totalElapsed);
         } else if (failIfTimeout) {
           String msg = getExplanation(predicate);
-          fail(MessageFormat.format(
-            "Waiting timed out after [{0}] ms (initial delay: [{1}] ms, polling timeout: "
-              + "[{2}] ms)",
-            totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
+          fail(MessageFormat.format("Waiting timed out after {0} ms (initial delay: {1} ms, polling timeout: {2} ms)", totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
         } else {
-          LOG.warn("Waiting timed out after {} ms (initial delay: {} ms, polling timeout: {} ms), {}",
-            totalElapsed, adjustedInitialDelay, adjustedTimeout, getExplanation(predicate));
+          LOG.warn("Waiting timed out after {} ms (initial delay: {} ms, polling timeout: {} ms), {}", totalElapsed, adjustedInitialDelay, adjustedTimeout, getExplanation(predicate));
         }
       }
       return (eval || interrupted) ? (EnvironmentEdgeManager.currentTime() - started) : -1;
