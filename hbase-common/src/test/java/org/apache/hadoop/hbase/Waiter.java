@@ -217,19 +217,18 @@ public final class Waiter {
     try {
       // Handle initial delay
       if (adjustedInitialDelay > 0) {
-        LOG.info("Waiting for initial delay of [{}] milli-secs before starting to poll (wait.for.ratio=[{}])", adjustedInitialDelay, getWaitForRatio(conf));
+        LOG.info("Waiting for initial delay of {} ms before starting to poll (wait.for.ratio={})", adjustedInitialDelay, getWaitForRatio(conf));
         try {
           Thread.sleep(adjustedInitialDelay);
         } catch (InterruptedException e) {
-          LOG.warn("Initial delay interrupted after {} msec", EnvironmentEdgeManager.currentTime() - started);
-          interrupted = true;
+          LOG.warn("Initial delay interrupted after {} ms", EnvironmentEdgeManager.currentTime() - started);
           // Check predicate once even if interrupted during initial delay
           eval = predicate.evaluate();
           return eval ? (EnvironmentEdgeManager.currentTime() - started) : -1;
         }
       }
 
-      LOG.info("Waiting up to {} milli-secs (wait.for.ratio={}) after initial delay of {} milli-secs", adjustedTimeout, getWaitForRatio(conf)m, adjustedInitialDelay);
+      LOG.info("Waiting up to {} ms (wait.for.ratio={}) after initial delay of {} ms", adjustedTimeout, getWaitForRatio(conf), adjustedInitialDelay);
       while (
         !(eval = predicate.evaluate())
           && (remainderWait = mustEnd - EnvironmentEdgeManager.currentTime()) > 0
@@ -247,20 +246,16 @@ public final class Waiter {
       if (!eval) {
         long totalElapsed = EnvironmentEdgeManager.currentTime() - started;
         if (interrupted) {
-          LOG.warn("");
-          LOG.warn(MessageFormat.format("Waiting interrupted after [{0}] msec", totalElapsed));
+          LOG.warn("Waiting interrupted after {} ms", totalElapsed);
         } else if (failIfTimeout) {
           String msg = getExplanation(predicate);
           fail(MessageFormat.format(
-            "Waiting timed out after [{0}] msec (initial delay: [{1}] msec, polling timeout: "
-              + "[{2}] msec)",
+            "Waiting timed out after [{0}] ms (initial delay: [{1}] ms, polling timeout: "
+              + "[{2}] ms)",
             totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
         } else {
-          String msg = getExplanation(predicate);
-          LOG.warn(MessageFormat.format(
-            "Waiting timed out after [{0}] msec (initial delay: [{1}] msec, polling timeout: "
-              + "[{2}] msec)",
-            totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
+          LOG.warn("Waiting timed out after {} ms (initial delay: {} ms, polling timeout: {} ms), {}",
+            totalElapsed, adjustedInitialDelay, adjustedTimeout, getExplanation(predicate));
         }
       }
       return (eval || interrupted) ? (EnvironmentEdgeManager.currentTime() - started) : -1;
