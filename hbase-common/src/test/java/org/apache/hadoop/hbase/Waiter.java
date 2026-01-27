@@ -172,32 +172,45 @@ public final class Waiter {
     return waitFor(conf, timeout, 0, interval, failIfTimeout, predicate);
   }
 
+  /**
+   *
+   * @param conf          the configuration
+   * @param timeout       the timeout in milliseconds to wait for the predicate.
+   * @param initialDelay  the initial delay in milliseconds before starting task.
+   * @param interval      the interval in milliseconds to evaluate predicate.
+   * @param failIfTimeout indicates if should fail current test case when times out.
+   * @param predicate     the predicate to evaluate.
+   * @return the effective wait, in milli-seconds until the predicate becomes <code>true</code> or
+   *         wait is interrupted otherwise <code>-1</code> when times out. The returned time
+   *         includes the initial delay.
+   */
   public static <E extends Exception> long waitFor(Configuration conf, long timeout,
     long initialDelay, long interval, boolean failIfTimeout, Predicate<E> predicate) {
     long started = EnvironmentEdgeManager.currentTime();
     long adjustedTimeout = (long) (getWaitForRatio(conf) * timeout);
     long adjustedInitialDelay = (long) (getWaitForRatio(conf) * initialDelay);
-    long mustEnd = started + adjustedInitialDelay + adjustedTimeout;
+    long mustEnd = started + adjustedTimeout;
     long remainderWait;
     long sleepInterval;
     boolean eval;
     boolean interrupted = false;
 
     try {
-      // Handle initial delay
-      if (adjustedInitialDelay > 0) {
-        LOG.info("Waiting for initial delay of {} ms before starting to poll (wait.for.ratio={})", adjustedInitialDelay, getWaitForRatio(conf));
+      if (initialDelay > 0) {
+        LOG.info("Waiting for initial delay of {} ms before starting task (wait.for.ratio={})",
+          adjustedInitialDelay, getWaitForRatio(conf));
         try {
           Thread.sleep(adjustedInitialDelay);
         } catch (InterruptedException e) {
-          LOG.warn("Initial delay interrupted after {} ms", EnvironmentEdgeManager.currentTime() - started);
-          // Check predicate once even if interrupted during initial delay
+          LOG.warn("Initial delay interrupted after {} ms",
+            EnvironmentEdgeManager.currentTime() - started);
           eval = predicate.evaluate();
           return eval ? (EnvironmentEdgeManager.currentTime() - started) : -1;
         }
       }
 
-      LOG.info("Waiting up to {} ms (wait.for.ratio={}) after initial delay of {} ms", adjustedTimeout, getWaitForRatio(conf), adjustedInitialDelay);
+      LOG.info("Waiting up to {} ms (wait.for.ratio={}) after initial delay of {} ms",
+        adjustedTimeout, getWaitForRatio(conf), adjustedInitialDelay);
       while (
         !(eval = predicate.evaluate())
           && (remainderWait = mustEnd - EnvironmentEdgeManager.currentTime()) > 0
@@ -212,15 +225,20 @@ public final class Waiter {
           break;
         }
       }
+
       if (!eval) {
         long totalElapsed = EnvironmentEdgeManager.currentTime() - started;
         if (interrupted) {
           LOG.warn("Waiting interrupted after {} ms", totalElapsed);
         } else if (failIfTimeout) {
           String msg = getExplanation(predicate);
-          fail(MessageFormat.format("Waiting timed out after {0} ms (initial delay: {1} ms, polling timeout: {2} ms)", totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
+          fail(MessageFormat.format(
+            "Waiting timed out after {0} ms (initial delay: {1} ms, polling timeout: {2} ms)",
+            totalElapsed, adjustedInitialDelay, adjustedTimeout) + msg);
         } else {
-          LOG.warn("Waiting timed out after {} ms (initial delay: {} ms, polling timeout: {} ms), {}", totalElapsed, adjustedInitialDelay, adjustedTimeout, getExplanation(predicate));
+          LOG.warn(
+            "Waiting timed out after {} ms (initial delay: {} ms, polling timeout: {} ms), {}",
+            totalElapsed, adjustedInitialDelay, adjustedTimeout, getExplanation(predicate));
         }
       }
       return (eval || interrupted) ? (EnvironmentEdgeManager.currentTime() - started) : -1;
