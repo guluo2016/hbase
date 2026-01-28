@@ -48,6 +48,8 @@ public final class Waiter {
 
   private static float waitForRatio = -1;
 
+  public static long DEFAULT_INTERVAL = 100;
+
   private Waiter() {
   }
 
@@ -132,7 +134,7 @@ public final class Waiter {
    */
   public static <E extends Exception> long waitFor(Configuration conf, long timeout,
     Predicate<E> predicate) {
-    return waitFor(conf, timeout, 100, true, predicate);
+    return waitFor(conf, timeout, DEFAULT_INTERVAL, true, predicate);
   }
 
   /**
