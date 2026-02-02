@@ -175,7 +175,11 @@ public final class Waiter {
   }
 
   /**
-   *
+   * Waits up to the duration equal to the specified timeout multiplied by the
+   * {@link #getWaitForRatio(Configuration)} for the given {@link Predicate} to become
+   * <code>true</code>. This method first waits for the initial delay, then checks the
+   * predicate, failing the test if the timeout is reached, the Predicate is still
+   * <code>false</code> and failIfTimeout is set as <code>true</code>.
    * @param conf          the configuration
    * @param timeout       the timeout in milliseconds to wait for the predicate.
    * @param initialDelay  the initial delay in milliseconds before starting task.
@@ -183,8 +187,7 @@ public final class Waiter {
    * @param failIfTimeout indicates if should fail current test case when times out.
    * @param predicate     the predicate to evaluate.
    * @return the effective wait, in milli-seconds until the predicate becomes <code>true</code> or
-   *         wait is interrupted otherwise <code>-1</code> when times out. The returned time
-   *         includes the initial delay.
+   *         wait is interrupted otherwise <code>-1</code> when times out.
    */
   public static <E extends Exception> long waitFor(Configuration conf, long timeout,
     long initialDelay, long interval, boolean failIfTimeout, Predicate<E> predicate) {
