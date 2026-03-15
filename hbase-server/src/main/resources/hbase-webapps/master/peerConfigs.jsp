@@ -19,7 +19,7 @@
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
+         import="java.util.List"
          import="org.apache.hadoop.hbase.master.HMaster"
          import="org.apache.hadoop.hbase.replication.ReplicationPeerDescription"
          import="org.apache.hadoop.hbase.replication.ReplicationPeerConfig"

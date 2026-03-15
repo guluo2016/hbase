@@ -18,8 +18,11 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
-         import="org.apache.hadoop.hbase.monitoring.*"
+         import="java.util.Collections"
+         import="java.util.Date"
+         import="java.util.List"
+         import="org.apache.hadoop.hbase.monitoring.MonitoredTask"
+         import="org.apache.hadoop.hbase.monitoring.TaskMonitor"
          import="org.apache.hadoop.util.StringUtils"
          import="org.apache.hadoop.hbase.master.http.MasterStatusConstants" %>
 

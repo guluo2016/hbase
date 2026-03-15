@@ -18,12 +18,11 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
-         import="org.apache.hadoop.hbase.util.*"
          import="org.apache.hadoop.hbase.regionserver.HRegionServer"
          import="org.apache.hadoop.hbase.regionserver.MetricsRegionServerWrapper"
          import="java.lang.management.MemoryUsage"
          import="org.apache.hadoop.hbase.io.util.MemorySizeUtil"
+         import="org.apache.hadoop.hbase.util.DirectMemoryUtils"
          import="org.apache.hadoop.util.StringUtils.TraditionalBinaryPrefix" %>
 
 <%

@@ -18,12 +18,16 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
          import="java.net.URLEncoder"
+         import="java.util.ArrayList"
+         import="java.util.List"
+         import="java.util.Map"
          import="org.apache.hadoop.hbase.TableName"
          import="org.apache.hadoop.hbase.master.HMaster"
          import="org.apache.hadoop.hbase.master.RegionState"
-         import="org.apache.hadoop.hbase.client.*"
+         import="org.apache.hadoop.hbase.client.RegionInfo"
+         import="org.apache.hadoop.hbase.client.TableDescriptor"
+         import="org.apache.hadoop.hbase.client.TableState"
          import="org.apache.hadoop.hbase.master.http.MasterStatusUtil"
          import="org.apache.hadoop.hbase.master.http.MasterStatusConstants" %>
 

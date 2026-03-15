@@ -18,13 +18,17 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
-         import="org.apache.hadoop.hbase.util.*"
+         import="java.util.Collection"
+         import="java.util.List"
          import="org.apache.hadoop.hbase.client.RegionInfo"
          import="org.apache.hadoop.hbase.shaded.protobuf.generated.ClusterStatusProtos"
          import="org.apache.hadoop.hbase.client.RegionInfoDisplay"
          import="org.apache.hadoop.util.StringUtils.TraditionalBinaryPrefix"
-         import="org.apache.hadoop.hbase.regionserver.*"
+         import="org.apache.hadoop.hbase.regionserver.HRegionServer"
+         import="org.apache.hadoop.hbase.regionserver.HStoreFile"
+         import="org.apache.hadoop.hbase.regionserver.Region"
+         import="org.apache.hadoop.hbase.regionserver.Store"
+         import="org.apache.hadoop.hbase.regionserver.StoreFile"
          import="org.apache.hadoop.util.StringUtils" %>
 <%
   HRegionServer regionServer =

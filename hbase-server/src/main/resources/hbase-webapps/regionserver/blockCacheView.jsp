@@ -18,7 +18,8 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
+         import="java.util.Map"
+         import="java.util.NavigableSet"
          import="org.apache.hadoop.hbase.io.hfile.BlockCache"
          import="org.apache.hadoop.conf.Configuration"
          import="org.apache.hadoop.hbase.io.hfile.BlockCacheUtil"

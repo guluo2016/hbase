@@ -18,8 +18,9 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
+         import="java.util.Arrays"
+         import="java.util.Set"
          import="org.apache.hadoop.hbase.ServerName"
-         import="java.util.*"
          import="org.apache.hadoop.hbase.master.HMaster"
          import="org.apache.hadoop.hbase.rsgroup.RSGroupUtil"
          import="org.apache.hadoop.hbase.rsgroup.RSGroupInfoManager"

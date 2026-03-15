@@ -18,7 +18,7 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
+         import="java.util.Map"
          import="org.apache.hadoop.hbase.procedure2.util.StringUtils"
          import ="org.apache.hadoop.hbase.replication.regionserver.ReplicationStatus" %>
 <%

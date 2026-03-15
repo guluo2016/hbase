@@ -19,7 +19,8 @@
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
+         import="java.util.List"
+         import="java.util.Map"
          import="org.apache.hadoop.hbase.NamespaceDescriptor"
          import="org.apache.hadoop.hbase.TableName"
          import="org.apache.hadoop.hbase.master.HMaster"
@@ -27,7 +28,7 @@
          import="org.apache.hadoop.hbase.security.access.PermissionStorage"
          import="org.apache.hadoop.hbase.security.visibility.VisibilityConstants"
          import="org.apache.hadoop.hbase.tool.CanaryTool"
-         import="org.apache.hadoop.hbase.client.*"
+         import="org.apache.hadoop.hbase.client.TableDescriptor"
          import="org.apache.hadoop.hbase.master.http.MasterStatusConstants" %>
 
 <%

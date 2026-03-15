@@ -18,8 +18,7 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
-         import="org.apache.hadoop.hbase.regionserver.HRegionServer"
+         import="java.util.Map"
          import="org.apache.hadoop.hbase.regionserver.HRegionServer"
          import ="org.apache.hadoop.hbase.replication.regionserver.ReplicationStatus" %>
 <%

@@ -18,11 +18,10 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
+         import="java.util.Map"
          import="org.apache.hadoop.hbase.ServerName"
          import="org.apache.hadoop.hbase.master.HMaster"
          import="org.apache.hadoop.conf.Configuration"
-         import="org.apache.hadoop.hbase.util.*"
          import="org.apache.hadoop.hbase.master.http.MasterStatusConstants"
          import="org.apache.hadoop.hbase.master.http.MasterStatusUtil" %>
 

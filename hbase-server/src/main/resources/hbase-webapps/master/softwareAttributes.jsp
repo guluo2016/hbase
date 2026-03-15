@@ -18,7 +18,8 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
+         import="java.util.Date"
+         import="java.util.Map"
          import="org.apache.hadoop.hbase.master.HMaster"
          import="org.apache.hadoop.hbase.util.JvmVersion"
          import="org.apache.hadoop.hbase.util.CommonFSUtils"

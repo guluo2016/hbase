@@ -18,8 +18,8 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
-         import="org.apache.hadoop.hbase.util.*"
+         import="java.util.Collections"
+         import="java.util.List"
          import="org.apache.hadoop.hbase.regionserver.HRegionServer"
          import="org.apache.hadoop.hbase.client.RegionInfo" %>
 <%

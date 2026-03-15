@@ -18,7 +18,7 @@
  */
 --%>
 <%@ page contentType="text/html;charset=UTF-8"
-         import="java.util.*"
+         import="java.util.Map"
          import="org.apache.hadoop.hbase.ServerName"
          import="org.apache.hadoop.hbase.tool.CanaryTool"
          import="java.util.concurrent.atomic.LongAdder"
