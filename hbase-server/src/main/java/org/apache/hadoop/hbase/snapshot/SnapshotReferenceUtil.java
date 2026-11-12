@@ -280,7 +280,7 @@ public final class SnapshotReferenceUtil {
     Path linkPath;
     if (refPath != null && HFileLink.isHFileLink(refPath)) {
       linkPath = new Path(family, refPath.getName());
-    } else if (HFileLink.isHFileLink(fileName)) {
+    } else if (HFileLink.isHFileLink(fileName) || StoreFileInfo.isMobFileLink(fileName)) {
       linkPath = new Path(family, fileName);
     } else {
       linkPath = new Path(family,
@@ -307,10 +307,11 @@ public final class SnapshotReferenceUtil {
       }
       LOG.info(
         "Verifying MOB snapshot file: snapshotTable={}, region={}, family={}, fileName={}, "
-          + "linkPath={}, isHFileLink={}, linkComponents={}, originPath={}, archivePath={}",
+          + "linkPath={}, isHFileLink={}, isMobFileLink={}, linkComponents={}, originPath={}, "
+          + "archivePath={}",
         snapshot.getTable(), regionInfo.getEncodedName(), family, fileName, linkPath,
-        HFileLink.isHFileLink(fileName), linkComponents, link.getOriginPath(),
-        link.getArchivePath());
+        HFileLink.isHFileLink(fileName), StoreFileInfo.isMobFileLink(fileName), linkComponents,
+        link.getOriginPath(), link.getArchivePath());
     }
     try {
       FileStatus fstat = link.getFileStatus(fs);
