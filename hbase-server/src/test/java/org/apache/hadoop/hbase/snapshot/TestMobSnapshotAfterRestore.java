@@ -25,14 +25,17 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hbase.HBaseTestingUtil;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 import org.apache.hadoop.hbase.mob.MobConstants;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.SnapshotProtos;
 import org.apache.hadoop.hbase.testclassification.ClientTests;
 import org.apache.hadoop.hbase.testclassification.MediumTests;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.CommonFSUtils;
+import org.apache.hadoop.hbase.util.HFileArchiveUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -48,6 +51,7 @@ public class TestMobSnapshotAfterRestore {
 
   private static final HBaseTestingUtil UTIL = new HBaseTestingUtil();
   private static final byte[] FAM = Bytes.toBytes("info");
+  private static final byte[] REGULAR_FAM = Bytes.toBytes("regular");
   private static final TableName TABLE_NAME = TableName.valueOf("t01");
 
   @BeforeAll
@@ -64,10 +68,15 @@ public class TestMobSnapshotAfterRestore {
   @Test
   public void testSnapshotAfterRestoreAndPutMobData() throws Exception {
     MobSnapshotTestingUtils.createMobTable(UTIL, TABLE_NAME, 1, FAM);
-    try (Table table = UTIL.getConnection().getTable(TABLE_NAME)) {
-      putMobData(table, "a");
-    }
     Admin admin = UTIL.getAdmin();
+    admin.disableTable(TABLE_NAME);
+    admin.modifyTable(TableDescriptorBuilder.newBuilder(admin.getDescriptor(TABLE_NAME))
+      .setColumnFamily(ColumnFamilyDescriptorBuilder.of(REGULAR_FAM)).build());
+    admin.enableTable(TABLE_NAME);
+
+    try (Table table = UTIL.getConnection().getTable(TABLE_NAME)) {
+      putData(table, "a");
+    }
     admin.snapshot("t01_snap01", TABLE_NAME);
     dump("after snap01");
     verifySnapshot("t01_snap01");
@@ -77,14 +86,16 @@ public class TestMobSnapshotAfterRestore {
     dump("after delete table");
     verifySnapshot("t01_snap01");
 
-    admin.cloneSnapshot("t01_snap01", TABLE_NAME);
+    admin.restoreSnapshot("t01_snap01");
     dump("after restore");
     try (Table table = UTIL.getConnection().getTable(TABLE_NAME)) {
-      putMobData(table, "b");
+      putData(table, "b");
     }
     dump("after second put");
     verifySnapshot("t01_snap01");
     admin.snapshot("t01_snap02", TABLE_NAME);
+    dump("after snap02");
+    verifySnapshot("t01_snap02");
   }
 
   /** Lists every file under the MOB table dir (mobdir and archive) for TABLE_NAME. */
@@ -92,7 +103,9 @@ public class TestMobSnapshotAfterRestore {
     Path rootDir = CommonFSUtils.getRootDir(UTIL.getConfiguration());
     FileSystem fs = rootDir.getFileSystem(UTIL.getConfiguration());
     Path mobTableDir = CommonFSUtils.getTableDir(new Path(rootDir, "mobdir"), TABLE_NAME);
-    Path archiveTableDir = CommonFSUtils.getTableDir(new Path(rootDir, "archive"), TABLE_NAME);
+    Path archiveTableDir =
+      CommonFSUtils.getTableDir(HFileArchiveUtil.getArchivePath(UTIL.getConfiguration()),
+        TABLE_NAME);
     System.out.println("=== MOB DUMP [" + stage + "] ===");
     list(fs, mobTableDir, "mobdir");
     list(fs, archiveTableDir, "archive");
@@ -110,30 +123,26 @@ public class TestMobSnapshotAfterRestore {
     }
   }
 
-  /** Verifies the named snapshot; prints the failure instead of aborting so later stages still run. */
+  /** Verifies the named snapshot and fails the test if it is missing or corrupted. */
   private void verifySnapshot(String name) throws IOException {
     Path rootDir = CommonFSUtils.getRootDir(UTIL.getConfiguration());
     FileSystem fs = rootDir.getFileSystem(UTIL.getConfiguration());
     Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(name, rootDir);
     if (!fs.exists(snapshotDir)) {
-      System.out.println("=== VERIFY " + name + ": snapshot dir not found ===");
-      return;
+      throw new IOException("Snapshot directory not found for " + name + ": " + snapshotDir);
     }
     SnapshotProtos.SnapshotDescription desc =
       SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
-    try {
-      SnapshotReferenceUtil.verifySnapshot(UTIL.getConfiguration(), fs, snapshotDir, desc);
-      System.out.println("=== VERIFY " + name + ": OK ===");
-    } catch (IOException e) {
-      System.out.println("=== VERIFY " + name + ": FAILED: " + e + " ===");
-    }
+    SnapshotReferenceUtil.verifySnapshot(UTIL.getConfiguration(), fs, snapshotDir, desc);
+    System.out.println("=== VERIFY " + name + ": OK ===");
   }
 
-  private static void putMobData(Table table, String prefix) throws IOException {
+  private static void putData(Table table, String prefix) throws IOException {
     byte[] value = new byte[1024];
     for (int i = 0; i < 10; i++) {
       Put put = new Put(Bytes.toBytes(prefix + i));
       put.addColumn(FAM, Bytes.toBytes("q"), value);
+      put.addColumn(REGULAR_FAM, Bytes.toBytes("q"), value);
       table.put(put);
     }
     UTIL.getAdmin().flush(TABLE_NAME);

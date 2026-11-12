@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -295,6 +296,21 @@ public final class SnapshotReferenceUtil {
     } else {
       // not mob region
       link = HFileLink.buildFromHFileLinkPattern(conf, linkPath);
+    }
+    if (MobUtils.isMobRegionInfo(regionInfo)) {
+      Matcher matcher = HFileLink.REF_OR_HFILE_LINK_PATTERN.matcher(linkPath.getName());
+      String linkComponents = "unmatched";
+      if (matcher.matches()) {
+        linkComponents = "namespace=" + matcher.group(1) + ", table=" + matcher.group(2)
+          + ", region=" + matcher.group(3) + ", hfile=" + matcher.group(4) + ", resolvedTable="
+          + HFileLink.getReferencedTableName(linkPath.getName());
+      }
+      LOG.info(
+        "Verifying MOB snapshot file: snapshotTable={}, region={}, family={}, fileName={}, "
+          + "linkPath={}, isHFileLink={}, linkComponents={}, originPath={}, archivePath={}",
+        snapshot.getTable(), regionInfo.getEncodedName(), family, fileName, linkPath,
+        HFileLink.isHFileLink(fileName), linkComponents, link.getOriginPath(),
+        link.getArchivePath());
     }
     try {
       FileStatus fstat = link.getFileStatus(fs);
