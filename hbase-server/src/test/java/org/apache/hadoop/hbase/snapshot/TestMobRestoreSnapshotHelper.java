@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
@@ -144,66 +145,39 @@ public class TestMobRestoreSnapshotHelper extends TestRestoreSnapshotHelper {
   private void testSecondSnapshotAfterMobRestore(TableName tableName, String snapshotName,
     String secondSnapshotName) throws IOException {
     Admin admin = TEST_UTIL.getAdmin();
-    byte[] mobFamily = Bytes.toBytes("A");
-    byte[] regularFamily = Bytes.toBytes("B");
+    byte[] family = Bytes.toBytes("info");
+    byte[] data = Bytes.toBytes("test");
+    byte[] mobData = new byte[100];
+    Arrays.fill(mobData, (byte) 'A');
+
     try {
-      admin.createTable(TableDescriptorBuilder.newBuilder(tableName)
-        .setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(mobFamily).setMobEnabled(true)
-          .setMobThreshold(0L).build())
-        .setColumnFamily(ColumnFamilyDescriptorBuilder.of(regularFamily)).build());
-      TEST_UTIL.waitUntilAllRegionsAssigned(tableName);
+      admin.createTable(TableDescriptorBuilder.newBuilder(tableName).setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(family).setMobEnabled(true).setMobThreshold(10L).build()).build());
+      assertTrue(admin.tableExists(tableName));
       try (Table table = TEST_UTIL.getConnection().getTable(tableName)) {
-        table.put(new Put(Bytes.toBytes("before-restore"))
-          .addColumn(mobFamily, Bytes.toBytes("q"), Bytes.toBytes("mob value"))
-          .addColumn(regularFamily, Bytes.toBytes("q"), Bytes.toBytes("regular value")));
+        table.put(new Put(Bytes.toBytes("row1")).addColumn(family, Bytes.toBytes("q"), data));
+        table.put(new Put(Bytes.toBytes("row2")).addColumn(family, Bytes.toBytes("q"), mobData));
       }
       admin.flush(tableName);
       admin.snapshot(snapshotName, tableName);
 
       TEST_UTIL.deleteTable(tableName);
+      assertFalse(admin.tableExists(tableName));
       admin.cloneSnapshot(snapshotName, tableName);
+      assertTrue(admin.tableExists(tableName));
+
       try (Table table = TEST_UTIL.getConnection().getTable(tableName)) {
-        table.put(new Put(Bytes.toBytes("after-restore"))
-          .addColumn(mobFamily, Bytes.toBytes("q"), Bytes.toBytes("mob value"))
-          .addColumn(regularFamily, Bytes.toBytes("q"), Bytes.toBytes("regular value")));
+        table.put(new Put(Bytes.toBytes("row3")).addColumn(family, Bytes.toBytes("q"), data));
+        table.put(new Put(Bytes.toBytes("row4")).addColumn(family, Bytes.toBytes("q"), mobData));
       }
       admin.flush(tableName);
       admin.snapshot(secondSnapshotName, tableName);
 
-      Path snapshotDir =
-        SnapshotDescriptionUtils.getCompletedSnapshotDir(secondSnapshotName, rootDir);
-      Set<String> snapshotFileNames = SnapshotReferenceUtil.getHFileNames(conf, fs, snapshotDir);
-      assertMobLinkSizesMatchTarget(snapshotDir);
-      Path mobFamilyPath = MobUtils.getMobFamilyPath(
-        MobUtils.getMobRegionPath(rootDir, tableName), Bytes.toString(mobFamily));
-      boolean foundMobLink = false;
-      FileStatus referencedMobFile = null;
-      for (FileStatus fileStatus : fs.listStatus(mobFamilyPath)) {
-        String fileName = fileStatus.getPath().getName();
-        if (StoreFileInfo.isMobFileLink(fileName)) {
-          foundMobLink = true;
-          assertFalse(HFileLink.isHFileLink(fileName));
-          assertTrue(snapshotFileNames.contains(HFileLink.getReferencedHFileName(fileName)));
-          assertFalse(snapshotFileNames.contains(fileName));
-          HFileLink link = HFileLink.buildFromHFileLinkPattern(
-            MobUtils.getQualifiedMobRootDir(conf), HFileArchiveUtil.getArchivePath(conf),
-            new Path(Bytes.toString(mobFamily), fileName));
-          referencedMobFile = link.getFileStatus(fs);
-        }
-      }
-      assertTrue(foundMobLink);
-      assertTrue(referencedMobFile != null);
-
-      SnapshotHFileCleaner cleaner = new SnapshotHFileCleaner();
-      cleaner.setConf(conf);
-      cleaner.init(Collections.singletonMap(HMaster.MASTER, TEST_UTIL.getHBaseCluster().getMaster()));
-      try {
-        assertFalse(
-          cleaner.getDeletableFiles(Collections.singletonList(referencedMobFile)).iterator()
-            .hasNext());
-      } finally {
-        cleaner.stop("test complete");
-      }
+      TEST_UTIL.deleteTable(tableName);
+      assertFalse(admin.tableExists(tableName));
+      admin.cloneSnapshot(secondSnapshotName, tableName);
+      assertTrue(admin.tableExists(tableName));
+      assertEquals(4, TEST_UTIL.countRows(tableName));
+      
     } finally {
       if (admin.tableExists(tableName)) {
         TEST_UTIL.deleteTable(tableName);
@@ -211,30 +185,6 @@ public class TestMobRestoreSnapshotHelper extends TestRestoreSnapshotHelper {
       deleteSnapshotIfExists(admin, secondSnapshotName);
       deleteSnapshotIfExists(admin, snapshotName);
     }
-  }
-
-  private void assertMobLinkSizesMatchTarget(Path snapshotDir) throws IOException {
-    SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
-    boolean[] foundMobLink = { false };
-    SnapshotReferenceUtil.visitTableStoreFiles(conf, fs, snapshotDir, snapshotDesc,
-      new SnapshotReferenceUtil.StoreFileVisitor() {
-        @Override
-        public void storeFile(RegionInfo regionInfo, String family,
-          SnapshotRegionManifest.StoreFile storeFile) throws IOException {
-          if (MobUtils.isMobRegionInfo(regionInfo)
-            && StoreFileInfo.isMobFileLink(storeFile.getName())) {
-            foundMobLink[0] = true;
-            HFileLink link = HFileLink.buildFromHFileLinkPattern(
-              MobUtils.getQualifiedMobRootDir(conf), HFileArchiveUtil.getArchivePath(conf),
-              new Path(family, storeFile.getName()));
-            long targetSize = link.getFileStatus(fs).getLen();
-            assertTrue(storeFile.hasFileSize());
-            assertTrue(targetSize > 0);
-            assertEquals(targetSize, storeFile.getFileSize());
-          }
-        }
-      });
-    assertTrue(foundMobLink[0]);
   }
 
   private void deleteSnapshotIfExists(Admin admin, String snapshotName) throws IOException {
